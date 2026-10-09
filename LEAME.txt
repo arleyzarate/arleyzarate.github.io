@@ -1,41 +1,53 @@
 RECURSOS | Arley Zarate
-Versión: 09/octubre/2026
+Estructura separada: sitio principal y almacén de archivos
+Fecha: 09/10/2026
 
-PUBLICAR EN GITHUB PAGES
-1. Suba index.html, archivos.js y palabras.js a la carpeta publicada.
-2. Suba sus archivos HTML, LSP, DWG, PDF y otros formatos al MISMO directorio.
-3. Abra el sitio PUBLICADO (usuario.github.io/repositorio/), no la vista github.com.
-4. Escriba una letra o parte del nombre; por ejemplo, "texto" encontrará
-   "organzador_texto.html". Los resultados aparecen mientras escribe.
-5. Seleccione con clic o flechas Arriba/Abajo y Enter.
-6. Los HTML se abren en una pestaña nueva. Los demás archivos solicitan
-   confirmar la descarga (Sí o No).
-7. Los archivos de control index, LEAME, actualizar, archivos y palabras
-   no se muestran entre los resultados.
+ATENCIÓN: https://github.com/arleyzarate es un PERFIL, no es una página HTML.
+Para alojar una página principal de GitHub Pages cree el repositorio:
+  https://github.com/arleyzarate/arleyzarate.github.io
+La dirección pública será:
+  https://arleyzarate.github.io/
 
-BÚSQUEDA EN GITHUB
-- En direcciones usuario.github.io se identifica automáticamente el repositorio.
-- Se utiliza la API pública de GitHub para obtener todos los nombres de archivos.
-- Solo busca archivos del MISMO directorio, no de subcarpetas.
-- No necesita mantener manualmente una lista de archivos en GitHub Pages.
-- Para sitios con dominio personalizado, edite CONFIG_GITHUB en index.html
-  e indique usuario y repositorio. Opcionalmente carpeta y rama.
-- Si publicó mediante GitHub Actions con rama/carpeta no convencional,
-  puede definir también CONFIG_GITHUB.rama y CONFIG_GITHUB.carpeta.
-- La API pública tiene límites de consultas sin autenticación. Si se alcanza
-  el límite o no hay conexión, el catálogo local archivos.js sirve de respaldo.
-- Un archivo recién publicado puede tardar en aparecer en GitHub Pages.
+1. PÁGINA PRINCIPAL (repositorio arleyzarate.github.io)
+   Suba index.html, palabras.js y archivos.js a la raíz.
+   Configure Pages para publicar desde la rama principal, carpeta raíz (/).
+   No es necesario subir allí las aplicaciones o los archivos técnicos.
 
-USO EN WINDOWS, SIN LOCALHOST
-1. Ponga index.html, archivos.js, palabras.js y sus utilidades en una carpeta.
-2. Ejecute actualizar_archivos.bat al añadir o quitar archivos.
-3. Abra index.html con doble clic. El .bat actualiza archivos.js para uso local.
+2. ALMACÉN DE RECURSOS (repositorio recursos)
+   Mantenga en la raíz las utilidades HTML y los archivos LSP, DWG, PDF, etc.
+   El repositorio es: https://github.com/arleyzarate/recursos
+   Las utilidades HTML se abrirán desde: https://arleyzarate.github.io/recursos/
+   Debe conservar la publicación de GitHub Pages para dicho repositorio.
 
-VISUAL
-- Nombre central Arley Zarate.
-- Indicador Ingrese comando_ con guion bajo intermitente.
-- Sin leyendas en esquinas superior e inferior izquierda.
-- Fondo con diez colores sólidos oscuros que se alternan cada cinco segundos.
-- Animación de letras verticales de palabras.js (1.000 palabras).
+3. FUNCIONAMIENTO
+   La página principal consulta los nombres mediante:
+     https://api.github.com/repos/arleyzarate/recursos/contents
+   La búsqueda parcial, la lista desplegable y los filtros se mantienen.
+   Los HTML se abren en otra pestaña.
+   Para otros formatos se pregunta Sí o No antes de solicitar la descarga.
+   La consulta busca archivos de la raíz del repositorio recursos, no subcarpetas.
+   El catálogo se carga al abrir la página. Añadir archivos no requiere editar index.html.
 
-Diseño: Arley Zarate
+4. EN WINDOWS SIN LOCALHOST
+   Puede abrir los archivos de la página directamente desde Windows.
+   Si desea que busque archivos locales, colóquelos junto a index.html y ejecute
+   actualizar_archivos.bat para regenerar archivos.js antes de abrir la página.
+   La apertura local mantiene ese modo de funcionamiento, independiente de GitHub.
+
+5. LIMITACIONES
+   La API pública de GitHub puede estar sujeta a límites y fallos de red.
+   La URL de GitHub Pages debe estar publicada y actualizada para abrir los HTML.
+   El atributo de descarga funciona al compartir el mismo origen web.
+
+DISEÑO Y COMPORTAMIENTOS CONSERVADOS
+   - Nombre Arley Zarate y texto Ingrese comando_ intermitente.
+   - Búsqueda parcial y navegación con teclado o clic.
+   - Exclusión de nombres como index, README, LEAME, actualizar, archivos y palabras.
+   - 10 colores oscuros rotativos cada 5 segundos.
+   - Columnas verticales con 1.000 palabras de palabras.js.
+
+PRUEBAS DE ESTA ENTREGA
+   - Sintaxis JavaScript comprobada con Node.js.
+   - Navegador con respuesta simulada de GitHub: búsqueda parcial, exclusiones,
+     enlace de HTML, confirmación de LSP y URL de descarga correctos.
+   - No se verificó el funcionamiento del repositorio real ni del sitio publicado.

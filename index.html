@@ -259,15 +259,16 @@
     const botonSi = document.getElementById('descargar-si');
     const botonNo = document.getElementById('descargar-no');
 
-    // Solo se muestra el contenido del directorio publicado, nunca de subcarpetas.
-    // Opcional para dominios propios, repositorios con estructura particular o fuente personalizada.
-    // Deje las cadenas vacías para detectar automáticamente una página *.github.io.
+    // El buscador se publica en el sitio personal y consulta OTRO repositorio.
+    // Los archivos para abrir o descargar están publicados en /recursos/.
+    // No se buscan archivos del repositorio que aloja este index.html.
     const CONFIG_GITHUB = {
-      usuario: '',
-      repositorio: '',
+      usuario: 'arleyzarate',
+      repositorio: 'recursos',
       carpeta: '',
       rama: ''
     };
+    const URL_RECURSOS = 'https://arleyzarate.github.io/recursos/';
 
     const EXCLUIDOS = /^(?:index(?:\.|$)|leame(?:[._\- ]|$)|readme(?:[._\- ]|$)|actualizar(?:[._\- ]|$)|archivos(?:[._\- ]|$)|archivos_archivos(?:[._\- ]|$)|palabras(?:[._\- ]|$)|catalogo(?:[._\- ]|$)|license(?:\.|$)|\.nojekyll$|\.gitignore$|\.ds_store$|recursos_web_arley_zarate(?:[._\- ]|$))/i;
     const normalizar = texto => String(texto || '').normalize('NFD')
@@ -277,7 +278,7 @@
     const esVisible = nombre => typeof nombre === 'string' && !!nombre &&
       !/[\\/\u0000-\u001f]/.test(nombre) && !nombre.startsWith('.') &&
       !EXCLUIDOS.test(nombre);
-    const rutaArchivo = nombre => './' + encodeURIComponent(nombre);
+    const rutaArchivo = nombre => (location.protocol === 'file:' ? './' : URL_RECURSOS) + encodeURIComponent(nombre);
     const nombresLocales = Array.isArray(window.RECURSOS_ARCHIVOS) ? window.RECURSOS_ARCHIVOS : [];
     let catalogo = [];
     let cargando = true;
@@ -301,16 +302,8 @@
       indicacion.classList.toggle('oculta', entrada.value.length > 0);
     }
     function detectarRepositorio() {
-      if (CONFIG_GITHUB.usuario && CONFIG_GITHUB.repositorio) {
-        return { usuario: CONFIG_GITHUB.usuario, repositorio: CONFIG_GITHUB.repositorio };
-      }
-      const paginaGithub = location.hostname.match(/^([a-z\d-]+)\.github\.io$/i);
-      if (!paginaGithub) return null;
-      const usuario = paginaGithub[1];
-      const directorios = location.pathname.split('/').filter(Boolean);
-      const repositorio = directorios[0] && !/^index\.html?$/i.test(directorios[0])
-        ? decodeURIComponent(directorios[0]) : usuario + '.github.io';
-      return { usuario, repositorio };
+      // Configuración fija: no inferir desde la ubicación del buscador.
+      return { usuario: CONFIG_GITHUB.usuario, repositorio: CONFIG_GITHUB.repositorio };
     }
     async function pedirJSON(url) {
       const respuesta = await fetch(url, { headers: { Accept: 'application/vnd.github+json' } });
@@ -319,32 +312,13 @@
     }
     async function consultarGitHub(repo) {
       const base = 'https://api.github.com/repos/' + encodeURIComponent(repo.usuario)
-        + '/' + encodeURIComponent(repo.repositorio);
-      let carpeta = CONFIG_GITHUB.carpeta.replace(/^\/+|\/+$/g, '');
-      let rama = CONFIG_GITHUB.rama;
-      // Descubre la rama y /docs usados por GitHub Pages cuando la configuración es automática.
-      if (!CONFIG_GITHUB.carpeta && !CONFIG_GITHUB.rama) {
-        try {
-          const informacion = await pedirJSON(base + '/pages');
-          if (informacion && informacion.source) {
-            carpeta = (informacion.source.path || '/').replace(/^\/+|\/+$/g, '');
-            rama = informacion.source.branch || '';
-          }
-        } catch (_) { /* Puede estar publicado mediante GitHub Actions. */ }
-      }
-      const punto = carpeta ? '/' + carpeta.split('/').map(encodeURIComponent).join('/') : '';
-      const url = base + '/contents' + punto + (rama ? '?ref=' + encodeURIComponent(rama) : '');
+        + '/' + encodeURIComponent(repo.repositorio) + '/contents';
+      const carpeta = CONFIG_GITHUB.carpeta.replace(/^\/+|\/+$/g, '');
+      const subruta = carpeta ? '/' + carpeta.split('/').map(encodeURIComponent).join('/') : '';
+      const rama = CONFIG_GITHUB.rama;
+      const url = base + subruta + (rama ? '?ref=' + encodeURIComponent(rama) : '');
       const lista = await pedirJSON(url);
-      if (!Array.isArray(lista)) throw new Error('El directorio no devolvió una lista de archivos.');
-      // En caso de ser una publicación desde /docs sin dato de source, intentar /docs.
-      if (!lista.some(f => f.name === 'index.html') && !carpeta && !CONFIG_GITHUB.carpeta) {
-        try {
-          const docs = await pedirJSON(base + '/contents/docs' + (rama ? '?ref=' + encodeURIComponent(rama) : ''));
-          if (Array.isArray(docs) && docs.some(f => f.name === 'index.html')) {
-            return docs.filter(f => f.type === 'file').map(f => f.name);
-          }
-        } catch (_) { /* Conserva la lista de la raíz. */ }
-      }
+      if (!Array.isArray(lista)) throw new Error('GitHub no devolvió un directorio de archivos.');
       return lista.filter(f => f.type === 'file').map(f => f.name);
     }
     function catálogoFiltrado(nombres) {
