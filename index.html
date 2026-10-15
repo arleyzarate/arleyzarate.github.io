@@ -165,11 +165,52 @@
       .resultado { padding: 10px 8px; font-size: 13px; }
     }
     @media (prefers-reduced-motion: reduce) { .cursor-parpadeo { animation: none; } }
+    /* Entrada con partículas: no interfiere con el buscador ni los controles. */
+    #efecto-entrada {
+      position: fixed; inset: 0; z-index: 4; width: 100%; height: 100%;
+      pointer-events: none; user-select: none;
+    }
+    .centro h1 {
+      animation: aparecer-titulo .9s .68s cubic-bezier(.16,1,.3,1) both;
+    }
+    .comandos {
+      animation: aparecer-barra .85s 1.3s cubic-bezier(.16,1,.3,1) both;
+      overflow: hidden;
+    }
+    .comandos::after {
+      content: ""; position: absolute; inset: 0 auto 0 0; z-index: 0;
+      width: 36%; pointer-events: none; opacity: 0;
+      background: linear-gradient(90deg,transparent,rgba(146,255,224,.25),transparent);
+      transform: translateX(-120%);
+      animation: barrido-entrada .95s 1.7s ease-out both;
+    }
+    .comandos > * { z-index: 1; }
+    @keyframes aparecer-titulo {
+      0% { opacity: 0; transform: translateY(30px) scale(.9); filter: blur(16px); }
+      55% { opacity: 1; filter: blur(0); }
+      100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    }
+    @keyframes aparecer-barra {
+      0% { opacity: 0; transform: translateY(26px) scale(.93); filter: blur(9px); }
+      66% { opacity: 1; transform: translateY(-3px) scale(1.01); filter: blur(0); }
+      100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    }
+    @keyframes barrido-entrada {
+      0%, 10% { opacity: 0; transform: translateX(-120%); }
+      35% { opacity: 1; }
+      100% { opacity: 0; transform: translateX(400%); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #efecto-entrada { display: none; }
+      .centro h1, .comandos, .comandos::after { animation: none !important; }
+    }
 </style>
 </head>
 <body>
   <script src="palabras.js"></script>
   <script src="archivos.js"></script>
+  <script src="extensiones.js"></script>
+  <canvas id="efecto-entrada" aria-hidden="true"></canvas>
   <div id="lluvia" class="lluvia" aria-hidden="true"></div>
   <div class="pagina">
     <main class="centro">
@@ -251,6 +292,116 @@
     });
 
 
+    // Partículas de entrada que convergen sobre el título y se expanden hacia el buscador.
+    // Se ejecuta una sola vez, sin bibliotecas ni servicios y respeta movimiento reducido.
+    function iniciarEfectoEntrada() {
+      const lienzo = document.getElementById('efecto-entrada');
+      const reducirMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!lienzo || reducirMovimiento) { lienzo?.remove(); return; }
+      const ctx = lienzo.getContext('2d', { alpha: true });
+      if (!ctx) { lienzo.remove(); return; }
+      const titulo = document.querySelector('.centro h1');
+      const barra = document.querySelector('.comandos');
+      let ancho = 0, alto = 0, pixeles = 1, puntos = [];
+      let animacion = 0, inicio = 0;
+      const DURACION = 2600;
+      const azar = (a, b) => a + Math.random() * (b - a);
+      const limitar = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+      const suavizar = t => 1 - Math.pow(1 - t, 3);
+      function preparar() {
+        ancho = window.innerWidth; alto = window.innerHeight;
+        pixeles = Math.min(window.devicePixelRatio || 1, 2);
+        lienzo.width = Math.round(ancho * pixeles);
+        lienzo.height = Math.round(alto * pixeles);
+        ctx.setTransform(pixeles, 0, 0, pixeles, 0, 0);
+        const r = titulo.getBoundingClientRect();
+        const b = barra.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        const total = ancho < 600 ? 48 : 100;
+        puntos = Array.from({length: total}, (_, i) => {
+          const angulo = i / total * Math.PI * 2 + azar(-.28, .28);
+          const distancia = azar(Math.min(ancho, alto) * .38, Math.max(ancho, alto) * .68);
+          return {
+            x0: cx + Math.cos(angulo) * distancia,
+            y0: cy + Math.sin(angulo) * distancia,
+            x1: cx + azar(-r.width * .37, r.width * .37),
+            y1: cy + azar(-r.height * .27, r.height * .27),
+            x2: b.left + azar(0, b.width),
+            y2: b.top + azar(0, b.height),
+            radio: azar(.8, 2.2),
+            retardo: azar(0, 280),
+            tonalidad: i % 4 === 0 ? '#eaffff' : i % 3 === 0 ? '#64bcff' : '#8cffdf'
+          };
+        });
+      }
+      function anillo(x, y, radio, opacidad) {
+        if (opacidad <= 0 || radio <= 0) return;
+        ctx.beginPath(); ctx.arc(x, y, radio, 0, 2 * Math.PI);
+        ctx.strokeStyle = `rgba(154,255,221,${opacidad})`;
+        ctx.lineWidth = 1.8; ctx.shadowColor = '#8cffdb'; ctx.shadowBlur = 14;
+        ctx.stroke(); ctx.shadowBlur = 0;
+      }
+      function dibujar(tiempo) {
+        if (!inicio) inicio = tiempo;
+        const t = tiempo - inicio;
+        ctx.clearRect(0, 0, ancho, alto);
+        const r = titulo.getBoundingClientRect(), b = barra.getBoundingClientRect();
+        // Las partículas llegan al nombre y después salen hacia el campo de comando.
+        for (const p of puntos) {
+          const entrada = limitar((t - p.retardo) / 760);
+          if (entrada <= 0 || t > DURACION) continue;
+          const salida = limitar((t - 990) / 820);
+          const progreso1 = suavizar(entrada);
+          const progreso2 = suavizar(salida);
+          const x1 = p.x0 + (p.x1 - p.x0) * progreso1;
+          const y1 = p.y0 + (p.y1 - p.y0) * progreso1;
+          const x = x1 + (p.x2 - p.x1) * progreso2;
+          const y = y1 + (p.y2 - p.y1) * progreso2;
+          const opacidad = Math.min(1, entrada * 3) * (1 - limitar((t - 1900) / 600));
+          ctx.globalAlpha = Math.max(0, opacidad);
+          ctx.strokeStyle = p.tonalidad;
+          ctx.lineWidth = p.radio * .7;
+          ctx.shadowColor = p.tonalidad; ctx.shadowBlur = 9;
+          ctx.beginPath();
+          ctx.moveTo(x - (x - (salida ? p.x1 : p.x0)) * .055,
+                     y - (y - (salida ? p.y1 : p.y0)) * .055);
+          ctx.lineTo(x, y); ctx.stroke();
+          ctx.beginPath(); ctx.arc(x, y, p.radio, 0, Math.PI * 2);
+          ctx.fillStyle = p.tonalidad; ctx.fill();
+        }
+        ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+        const destello1 = limitar((t - 820) / 450);
+        if (destello1 > 0 && destello1 < 1) {
+          anillo(r.left + r.width/2, r.top + r.height/2, destello1 * Math.min(r.width*.64, 330), (1-destello1)*.68);
+        }
+        const destello2 = limitar((t - 1620) / 540);
+        if (destello2 > 0 && destello2 < 1) {
+          anillo(b.left + b.width/2, b.top + b.height/2, destello2 * b.width*.72, (1-destello2)*.42);
+        }
+        if (t < DURACION && !document.hidden) {
+          animacion = requestAnimationFrame(dibujar);
+        } else {
+          lienzo.remove();
+          window.removeEventListener('resize', preparar);
+          document.removeEventListener('visibilitychange', detenerSiOculto);
+        }
+      }
+      function detenerSiOculto() {
+        if (document.hidden) {
+          cancelAnimationFrame(animacion);
+          lienzo.remove();
+          window.removeEventListener('resize', preparar);
+          document.removeEventListener('visibilitychange', detenerSiOculto);
+        }
+      }
+      preparar();
+      window.addEventListener('resize', preparar, { passive: true });
+      document.addEventListener('visibilitychange', detenerSiOculto);
+      animacion = requestAnimationFrame(dibujar);
+    }
+    iniciarEfectoEntrada();
+
     const formulario = document.getElementById('formulario');
     const entrada = document.getElementById('comando');
     const estado = document.getElementById('estado');
@@ -274,6 +425,23 @@
     const normalizar = texto => String(texto || '').normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-CO');
     const simplificar = texto => normalizar(texto).replace(/[\s_\-]+/g, '');
+    // El catálogo puede contener código: solo mostrar formatos autorizados por extensiones.js.
+    // Si faltara el archivo de configuración, se usa un mínimo seguro.
+    const EXTENSIONES_PERMITIDAS = new Set(
+      (Array.isArray(window.RECURSOS_EXTENSIONES) ? window.RECURSOS_EXTENSIONES :
+        ['.html', '.htm', '.pdf', '.dwg', '.dxf', '.lsp'])
+      .map(valor => String(valor).trim().toLowerCase().replace(/^\.?/, '.'))
+      .filter(valor => /^\.[a-z0-9]+$/.test(valor))
+    );
+    // Exclusión adicional del código propio, incluso si se incluye por error en la lista.
+    const EXTENSIONES_CODIGO = new Set([
+      '.js', '.mjs', '.cjs', '.css', '.map', '.json', '.ts', '.tsx', '.jsx',
+      '.yml', '.yaml', '.env', '.php', '.py', '.ps1', '.sh', '.bat'
+    ]);
+    const extensionDe = nombre => {
+      const punto = nombre.lastIndexOf('.');
+      return punto > 0 ? nombre.slice(punto).toLowerCase() : '';
+    };
     const esHTML = nombre => /\.html?$/i.test(nombre);
     const esIndice = nombre => /^index\.html$/i.test(nombre);
     const nombreAmigable = nombre => nombre.replace(/[_\-]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -288,6 +456,8 @@
       const partes = ruta.split('/');
       const archivo = partes[partes.length - 1];
       const rutaCarpeta = partes.slice(0, -1).join('/');
+      const extension = extensionDe(archivo);
+      if (!EXTENSIONES_PERMITIDAS.has(extension) || EXTENSIONES_CODIGO.has(extension)) return null;
       // index.html de una carpeta representa la aplicación, no un archivo excluido.
       if (esIndice(archivo) && partes.length > 1) {
         const nombreCarpeta = partes[partes.length - 2];
