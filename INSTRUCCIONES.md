@@ -1,50 +1,33 @@
-# Recursos: búsqueda en carpetas y direcciones sin `.html`
+# Recursos: extensiones permitidas y entrada con partículas
 
 Actualización: 15/10/2026
 
-## Archivos que debe reemplazar
+## Archivos para publicar
 
-En `arleyzarate/arleyzarate.github.io`:
+En el repositorio **arleyzarate/arleyzarate.github.io**, en la raíz:
 
-1. Reemplace **`index.html`** en la raíz. Es el único archivo obligatorio para que funcione la búsqueda recursiva publicada.
-2. Si también usa la página directamente en Windows, reemplace **`actualizar_archivos.bat`**. Este actualiza el catálogo local, incluso en subcarpetas. Para usarlo, las carpetas de recursos deben estar físicamente bajo la carpeta que contiene `index.html`, y después debe ejecutar el `.bat` para actualizar `archivos.js`.
-3. Mantenga **`palabras.js`** y **`archivos.js`** actuales; no es necesario reemplazarlos para GitHub Pages.
+1. Reemplace **index.html** por el archivo entregado.
+2. Agregue **extensiones.js** en la misma carpeta del index.html. Es nuevo y obligatorio para personalizar la lista. Si falta temporalmente, el buscador usa una lista mínima de respaldo.
+3. Mantenga los archivos **palabras.js** y **archivos.js** actuales. No requieren cambios.
 
-En `arleyzarate/recursos`, organice cada aplicación como una carpeta con su `index.html`:
+El repositorio público **arleyzarate/recursos** no requiere cambios de estructura. Puede seguir guardando aplicaciones en carpetas con **index.html**, y DWG/LSP/PDF en cualquier subcarpeta.
 
-```text
-recursos/
-├── organizador_texto/
-│   └── index.html
-├── herramientas/
-│   ├── ductos2d/
-│   │   └── index.html
-│   ├── escala.lsp
-│   └── plano.dwg
-└── manual.pdf
-```
+## Cómo cambiar los formatos admitidos
 
-El buscador de la página principal encontrará todas esas rutas. Al escribir `texto`, sugerirá **Organizador texto**; al elegirlo, abrirá `https://arleyzarate.github.io/recursos/organizador_texto/`. `ductos2d` aparecerá como **Ductos2d** y abrirá `https://arleyzarate.github.io/recursos/herramientas/ductos2d/`. Los archivos `.lsp`, `.dwg`, `.pdf` y otros conservarán la confirmación antes de descargarse.
+Abra `extensiones.js`, edite el arreglo `window.RECURSOS_EXTENSIONES` y publíquelo. Ejemplo: para mostrar solo aplicaciones y planos, deje `['.html', '.htm', '.dwg', '.dxf']`.
 
-**Importante:** cada `index.html` debe conservar junto a él los archivos de los que dependa (imágenes, CSS, JavaScript). Revise las rutas relativas si mueve una aplicación desde la raíz hacia una carpeta. Compruebe además que GitHub Pages esté publicado para el repositorio `recursos`.
+**El buscador no mostrará archivos `.js`, `.css`, `.json`, `.map`, `.ts`, `.bat`, etc.** Aunque formen parte del repositorio, no figurarán en las sugerencias. No cambie los nombres `index.html` de las aplicaciones: siguen apareciendo con el nombre de su carpeta.
 
-Los archivos HTML independientes que permanezcan con otros nombres mostrarán su título sin `.html` en las sugerencias, pero su dirección todavía contendrá `.html`. Solo las aplicaciones organizadas con `carpeta/index.html` tendrán la dirección limpia terminada en `/`.
+**Importante:** la lista controla la visibilidad en el buscador, **no la privacidad real**. Un archivo publicado en un repositorio público sigue siendo accesible desde GitHub. Si necesita proteger código fuente, debe cambiar la estrategia de publicación o mantenerlo privado.
 
-## Se conserva
+## Efecto de entrada
 
-- Búsqueda parcial, incluso desde una sola letra, con clic, flechas y Enter.
-- Apertura de HTML en una nueva pestaña y aviso de apertura.
-- Confirmación antes de descargar otros formatos.
-- Exclusión de archivos de control y documentación.
-- Diez colores automáticos cada cinco segundos y letras verticales animadas.
-- Página principal separada del almacén público `arleyzarate/recursos`.
+Se agrega una entrada con partículas luminosas que convergen en el título, revelan «Arley Zarate» y se expanden hacia la barra. Dura aproximadamente 2,6 segundos, se ejecuta una vez al cargar la página, no intercepta clics, no requiere bibliotecas y se desactiva si el navegador solicita movimiento reducido. Se conservan las columnas animadas y los 10 colores de fondo cada 5 segundos.
 
-## Alcance y seguridad
+## Funciones conservadas
 
-No se han incorporado bloqueos del botón derecho ni de «Guardar», porque no impiden copiar el código alojado en un repositorio público. Esta entrega modifica solo búsqueda, nombres visibles, rutas y catálogo local.
+Búsqueda parcial y recursiva, sugerencias desde la primera letra, selección con teclado/clic, direcciones sin `.html` para `carpeta/index.html`, notificación de apertura, confirmación Sí/No antes de descargar, exclusión de archivos internos y consulta de la API pública de GitHub con respaldo para Windows.
 
-La búsqueda utiliza la API pública de árboles de GitHub y está sujeta a sus límites de solicitudes. Si no se puede consultar, usa el catálogo local cuando exista. La API devuelve archivos del repositorio, pero GitHub Pages puede no publicar algunos archivos o rutas según su configuración.
+## Pruebas y verificación
 
-## Pruebas
-
-Se comprobaron localmente la sintaxis JavaScript y escenarios simulados de consulta, subcarpetas, apertura y descarga. La publicación real de GitHub Pages debe verificarse después de subir los cambios.
+Probar al publicar: escribir `dia` para confirmar que **no** aparecen archivos `.js`; escribir `texto` para encontrar una aplicación; buscar un LSP/DWG/PDF y confirmar la descarga; refrescar la página para observar la entrada. Se verificará la ejecución del archivo antes de la entrega; la publicación real en GitHub Pages se confirma después de que se suban los archivos.
