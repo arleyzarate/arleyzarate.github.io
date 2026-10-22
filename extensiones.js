@@ -10,6 +10,6 @@ window.RECURSOS_EXTENSIONES = [
   '.html', '.htm',
   '.pdf', '.dwg', '.dxf', '.lsp', '.fas', '.vlx',
   '.xlsx', '.xls', '.xlsm', '.docx', '.doc', '.pptx', '.ppt',
-  '.csv', '.txt', '.zip', '.rar', '.7z',
+  '.csv', '.zip', '.rar', '.7z',
   '.png', '.jpg', '.jpeg'
 ];
