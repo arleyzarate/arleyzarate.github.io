@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#312F30">
-  <meta name="recursos-version" content="2026.10.25.12">
+  <meta name="recursos-version" content="2026.10.25.13">
   <meta name="description" content="Recursos | Arley Zarate. Herramientas y archivos con búsqueda en tiempo real.">
   <title>Recursos | Arley Zarate</title>
   <!-- La interfaz esencial es visible desde el primer renderizado. -->
@@ -55,14 +55,17 @@
       overflow-x: hidden;
       position: relative;
     }
-    /* Fotografías centradas: cover usa la escala necesaria para cubrir toda la
-       ventana sin franjas. Las capas rotan cada 30 minutos sobre el fondo sólido. */
+    /* Capa fotográfica no esencial: nunca cubre ni bloquea el buscador.
+       La foto se dimensiona una vez como cover y se desplaza solo por transform. */
     .fondo-imagen {
-      position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%;
-      background-position: center center; background-size: cover;
-      background-repeat: no-repeat; pointer-events: none; opacity: 0;
-      visibility: hidden;
+      position: fixed; inset: 0; z-index: 0; overflow: hidden;
+      pointer-events: none; opacity: 0; visibility: hidden;
       transition: opacity .85s ease;
+    }
+    .fondo-foto {
+      position: absolute; top: 0; left: 0; display: block;
+      background-position: center; background-size: 100% 100%;
+      background-repeat: no-repeat; will-change: auto;
     }
     @media (prefers-reduced-motion: reduce) {
       .fondo-imagen { transition: none; }
@@ -199,31 +202,10 @@
       .resultado { padding: 10px 8px; font-size: 13px; }
     }
     @media (prefers-reduced-motion: reduce) { .cursor-parpadeo { animation: none; } }
-    .comandos {
-      animation: aparecer-barra .85s 1.3s cubic-bezier(.16,1,.3,1) both;
-      overflow: hidden;
-    }
-    .comandos::after {
-      content: ""; position: absolute; inset: 0 auto 0 0; z-index: 0;
-      width: 36%; pointer-events: none; opacity: 0;
-      background: linear-gradient(90deg,transparent,color-mix(in srgb, var(--acento) 28%, transparent),transparent);
-      transform: translateX(-120%);
-      animation: barrido-entrada .95s 1.7s ease-out both;
-    }
+    /* La barra es esencial: nunca se oculta esperando una animación de entrada. */
+    .comandos { overflow: hidden; animation: none; }
+    .comandos::after { display: none; }
     .comandos > * { z-index: 1; }
-    @keyframes aparecer-barra {
-      0% { opacity: 0; transform: translateY(26px) scale(.93); filter: blur(9px); }
-      66% { opacity: 1; transform: translateY(-3px) scale(1.01); filter: blur(0); }
-      100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
-    }
-    @keyframes barrido-entrada {
-      0%, 10% { opacity: 0; transform: translateX(-120%); }
-      35% { opacity: 1; }
-      100% { opacity: 0; transform: translateX(400%); }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .comandos, .comandos::after { animation: none !important; }
-    }
 
     /* Firma Fourier: reemplaza exclusivamente el texto anterior del título.
        Su referencia permanece legible durante todo el ciclo y los diez fondos. */
@@ -367,10 +349,11 @@
 </style>
 </head>
 <body>
-  <div id="fondo-imagen-a" class="fondo-imagen" aria-hidden="true"></div>
-  <div id="fondo-imagen-b" class="fondo-imagen" aria-hidden="true"></div>
-  <script src="archivos.js"></script>
-  <script src="extensiones.js"></script>
+  <div id="fondo-imagen-a" class="fondo-imagen" aria-hidden="true"><div class="fondo-foto"></div></div>
+  <div id="fondo-imagen-b" class="fondo-imagen" aria-hidden="true"><div class="fondo-foto"></div></div>
+  <!-- Los catálogos auxiliares no bloquean la primera pintura de la interfaz. -->
+  <script src="archivos.js" async onload="window.dispatchEvent(new Event('recursos:config-cargada'))"></script>
+  <script src="extensiones.js" async onload="window.dispatchEvent(new Event('recursos:config-cargada'))"></script>
   <canvas id="firma-escena" aria-hidden="true"></canvas>
   <!-- Firma anclada directamente a la ventana, separada del buscador móvil. -->
   <h1 id="firma" class="titulo-firma" aria-label="Arley Zarate">
@@ -503,9 +486,15 @@
       const dia = Math.floor(Date.UTC(f.year, f.month-1, f.day) / 86400000);
       return dia * 48 + f.hour * 2 + Math.floor(f.minute / 30);
     }
+    // Fecha de origen fija: 25/10/2026, 00:00 de Colombia (UTC-5).
+    // Los IDs 01..10 son permanentes; nunca se ordenan por luminosidad.
+    const ORIGEN_FRANJA = Math.floor(Date.UTC(2026, 9, 25, 5) / MS_MEDIA_HORA);
+    const moduloPositivo = (valor, n) => ((valor % n) + n) % n;
+    function franjaDesdeOrigen(fecha = new Date()) {
+      return Math.floor(fecha.getTime() / MS_MEDIA_HORA) - ORIGEN_FRANJA;
+    }
     function indiceTemaColombia(fecha = new Date()) {
-      const franja = numeroFranjaColombia(fecha);
-      return ((franja % PALETAS.length) + PALETAS.length) % PALETAS.length;
+      return moduloPositivo(franjaDesdeOrigen(fecha), PALETAS.length);
     }
     function aplicarPaleta(p) {
       const clara = p.modo === 'claro';
@@ -553,7 +542,7 @@
         indicePaleta = siguiente;
         aplicarPaleta(PALETAS[indicePaleta]);
         window.dispatchEvent(new CustomEvent('recursos:cambio-paleta', {
-          detail: {franja: numeroFranjaColombia(), indice: indicePaleta}
+          detail: {franja: franjaDesdeOrigen(), indice: indicePaleta}
         }));
       }
       clearTimeout(temporizadorTema);
@@ -571,7 +560,9 @@
       indice: () => indicePaleta,
       grupo: () => indicePaleta + 1,
       fechaHoraColombia,
-      franjaParaFecha: numeroFranjaColombia,
+      franjaParaFecha: franjaDesdeOrigen,
+      franjaAbsolutaParaFecha: numeroFranjaColombia,
+      origenFranja: ORIGEN_FRANJA,
       temaParaFecha: fecha => PALETAS[indiceTemaColombia(fecha)].nombre,
       indiceParaFecha: indiceTemaColombia,
       alternancia: PALETAS.map(p => p.modo),
@@ -680,12 +671,13 @@
     const simplificar = texto => normalizar(texto).replace(/[\s_\-]+/g, '');
     // El catálogo puede contener código: solo mostrar formatos autorizados por extensiones.js.
     // Si faltara el archivo de configuración, se usa un mínimo seguro.
-    const EXTENSIONES_PERMITIDAS = new Set(
-      (Array.isArray(window.RECURSOS_EXTENSIONES) ? window.RECURSOS_EXTENSIONES :
+    function leerExtensionesPermitidas(){
+      return new Set((Array.isArray(window.RECURSOS_EXTENSIONES) ? window.RECURSOS_EXTENSIONES :
         ['.html', '.htm', '.pdf', '.dwg', '.dxf', '.lsp'])
-      .map(valor => String(valor).trim().toLowerCase().replace(/^\.?/, '.'))
-      .filter(valor => /^\.[a-z0-9]+$/.test(valor))
-    );
+        .map(valor=>String(valor).trim().toLowerCase().replace(/^\.?/, '.'))
+        .filter(valor=>/^\.[a-z0-9]+$/.test(valor)));
+    }
+    let EXTENSIONES_PERMITIDAS=leerExtensionesPermitidas();
     // Exclusión adicional del código propio, incluso si se incluye por error en la lista.
     const EXTENSIONES_CODIGO = new Set([
       '.js', '.mjs', '.cjs', '.css', '.map', '.json', '.ts', '.tsx', '.jsx',
@@ -746,7 +738,7 @@
         ? item.ruta.slice(0, -'index.html'.length) : item.ruta;
       return (location.protocol === 'file:' ? './' : URL_RECURSOS) + codificarRuta(ruta);
     }
-    const nombresLocales = Array.isArray(window.RECURSOS_ARCHIVOS) ? window.RECURSOS_ARCHIVOS : [];
+    const nombresLocales = () => Array.isArray(window.RECURSOS_ARCHIVOS) ? window.RECURSOS_ARCHIVOS : [];
     let catalogo = [];
     let carpetasDisponibles = [];
     let carpetaActiva = null;
@@ -855,7 +847,7 @@
     }
     async function cargarCatalogo() {
       if (location.protocol === 'file:') {
-        catalogo = catalogoFiltrado(nombresLocales);
+        catalogo = catalogoFiltrado(nombresLocales());
         actualizarCarpetas();
         cargando = false;
         errorCatalogo = catalogo.length === 0;
@@ -867,7 +859,7 @@
         errorCatalogo = catalogo.length === 0;
       } catch (_) {
         // El respaldo corresponde a una copia LOCAL de los recursos.
-        catalogo = catalogoFiltrado(nombresLocales);
+        catalogo = catalogoFiltrado(nombresLocales());
         errorCatalogo = catalogo.length === 0;
       } finally {
         cargando = false;
@@ -1053,132 +1045,128 @@
       if (!elegido) { notificar('Sin resultados para abrir.', 'info'); return; }
       seleccionarArchivo(elegido);
     });
+    // La configuración llega en paralelo; actualizar el filtro sin bloquear el buscador.
+    let recargaConfiguracion=0;
+    addEventListener('recursos:config-cargada',()=>{
+      clearTimeout(recargaConfiguracion);
+      recargaConfiguracion=setTimeout(()=>{
+        EXTENSIONES_PERMITIDAS=leerExtensionesPermitidas();
+        void cargarCatalogo();
+      },120);
+    });
     cargarCatalogo();
   </script>
 <script>
 'use strict';
-/* Fondo opcional: imágenes en la carpeta real 'img', sin alterar la interfaz.
-   Prioridad: (1) HTML, paleta y buscador, (2) imágenes ya validadas,
-   (3) animación Fourier. Si fallan, sigue visible el color sólido. */
+/* Imágenes no esenciales: fecha común, versiones ligeras, paneo opcional.
+   La interfaz y la firma SVG funcionan incluso sin red, imágenes o movimiento. */
 (()=>{
   const CAPAS=[document.getElementById('fondo-imagen-a'),document.getElementById('fondo-imagen-b')];
   if(CAPAS.some(c=>!c))return;
-  const CARPETA='img', RAIZ='./'+CARPETA+'/', CLAVE='recursos.imagen-fondo.v2';
+  const FOTOS=CAPAS.map(c=>c.querySelector('.fondo-foto'));
+  const RAIZ='./img/';
   const API='https://api.github.com/repos/arleyzarate/arleyzarate.github.io/contents/img?per_page=100';
   const EXT=/\.(webp|avif|png|jpe?g)$/i;
-  let grupos=new Map(), indiceActivo=0, capaActiva=-1, rutaActiva='', turno=0;
-  let franjaAnterior=null, iniciada=false, estadoTemporal=null, resizeTimer=0, revisionListado=0;
+  const MOVIMIENTO=window.matchMedia('(prefers-reduced-motion: reduce)');
+  let grupos=new Map(), capaActiva=-1, rutaActiva='', indiceActivo=0, franjaMostrada=null;
+  let revision=0, revisionListado=0, iniciada=false, resizeTimer=0, paneo=null;
+  let dimensiones={ancho:0,alto:0}, ultimaLista=[], trabajoPendiente=false;
+  let temporizadorAnticipo=0, anticipo=null, revisionAnticipo=0;
 
+  // Identificadores inmutables del archivo: 01, 02, ..., con variantes del mismo número.
   function analizarRuta(valor){
     if(typeof valor!=='string')return null;
     const ruta=valor.replace(/\\/g,'/').replace(/^\.\//,'');
-    const r=/^(?:img|IMG)\/([^/]+)$/i.exec(ruta);
-    if(!r)return null;
-    const nombre=r[1];
-    if(!EXT.test(nombre)||! /^[a-z0-9_. -]+$/i.test(nombre)||nombre.includes('..'))return null;
-    const m=/^(0*[1-9]\d*)(?=[_. -]|\.)/i.exec(nombre);
+    const m=/^img\/([^/]+)$/i.exec(ruta);
     if(!m)return null;
-    const grupo=Number(m[1]);
+    const nombre=m[1];
+    if(!EXT.test(nombre)||!/^[a-z0-9_. -]+$/i.test(nombre)||nombre.includes('..'))return null;
+    const num=/^(0*[1-9]\d*)(?=[_. -]|\.)/.exec(nombre);
+    if(!num)return null;
+    const grupo=Number(num[1]);
     if(!Number.isSafeInteger(grupo)||grupo>999999)return null;
-    const sinExtension=nombre.replace(EXT,'');
-    // Acepta 01_1000138654_320w.webp, 01_640x960.webp, 01_640w.webp, 01.jpg.
-    const dimensiones=/(?:^|[_ .-])(\d{2,5})[xX](\d{2,5})$/i.exec(sinExtension);
-    const sufijo=/(?:^|[_ .-])(\d{2,5})w?$/i.exec(sinExtension);
-    const ancho=dimensiones?Number(dimensiones[1]):sufijo?Number(sufijo[1]):0;
-    const alto=dimensiones?Number(dimensiones[2]):0;
+    const sinExt=nombre.replace(EXT,'');
+    const medidas=/(?:^|[_ .-])(\d{2,5})[xX](\d{2,5})$/i.exec(sinExt);
+    const sufijo=/(?:^|[_ .-])(\d{2,5})w?$/i.exec(sinExt);
+    const ancho=medidas?Number(medidas[1]):sufijo?Number(sufijo[1]):0;
+    const alto=medidas?Number(medidas[2]):0;
     if(ancho && ancho<100 || alto && alto<100)return null;
     return {grupo,nombre,ancho,alto,ruta:RAIZ+encodeURIComponent(nombre)};
   }
   function integrarRutas(datos,destino){
     for(const dato of Array.isArray(datos)?datos:[]){
       const valor=typeof dato==='string'?dato:(dato?.path||dato?.name||'');
-      const ruta=valor.includes('/')?valor:CARPETA+'/'+valor;
+      const ruta=valor.includes('/')?valor:'img/'+valor;
       const f=analizarRuta(ruta);
       if(!f)continue;
       if(!destino.has(f.grupo))destino.set(f.grupo,[]);
       if(!destino.get(f.grupo).some(x=>x.nombre===f.nombre))destino.get(f.grupo).push(f);
     }
   }
+  async function solicitarJSON(url,opciones={},maxMs=4500){
+    const ctrl=typeof AbortController==='function'?new AbortController():null;
+    let limite;
+    try {
+      // Promise.race limita también los navegadores sin AbortController.
+      const trabajo=fetch(url,{...opciones,...(ctrl?{signal:ctrl.signal}:{})})
+        .then(r=>r.ok?r.json():null);
+      return await Promise.race([
+        trabajo,
+        new Promise(resolve=>{limite=setTimeout(()=>{ctrl?.abort();resolve(null);},maxMs);})
+      ]);
+    }catch(_){return null;}
+    finally{clearTimeout(limite);}
+  }
   async function obtenerListado(){
     const resultado=new Map();
     integrarRutas(window.RECURSOS_IMAGENES,resultado);
     integrarRutas(window.RECURSOS_ARCHIVOS,resultado);
     if(location.protocol==='file:')return resultado;
-    // GitHub Pages diferencia mayúsculas y minúsculas: se consulta 'img'.
-    // Una conexión lenta nunca bloquea el buscador ni deja la fotografía esperando indefinidamente.
-    const control=typeof AbortController==='function'?new AbortController():null;
-    const limite=control?setTimeout(()=>control.abort(),4500):null;
-    try{
-      const r=await fetch(API,{headers:{Accept:'application/vnd.github+json'},
-        ...(control?{signal:control.signal}:{})});
-      if(r.ok){
-        const datos=await r.json();
-        integrarRutas(Array.isArray(datos)?datos.filter(x=>x.type==='file'):[],resultado);
-      }
-    }catch(_){/* Sin red: no alterar el fondo sólido. */}
-    finally{if(limite!==null)clearTimeout(limite);}
-    // Manifiesto opcional para despliegues sin API; una ausencia no muestra mensajes.
+    const datos=await solicitarJSON(API,{headers:{Accept:'application/vnd.github+json'}},4300);
+    integrarRutas(Array.isArray(datos)?datos.filter(x=>x.type==='file'):[],resultado);
+    // El manifiesto es opcional y está sujeto al mismo límite de espera.
     if(!resultado.size){
-      try{
-        const r=await fetch(RAIZ+'imagenes.json',{cache:'no-store'});
-        if(r.ok){const datos=await r.json();integrarRutas(Array.isArray(datos)?datos:datos?.imagenes,resultado);}
-      }catch(_){/* Manifiesto no disponible. */}
+      const respaldo=await solicitarJSON(RAIZ+'imagenes.json',{cache:'no-store'},1800);
+      integrarRutas(Array.isArray(respaldo)?respaldo:respaldo?.imagenes,resultado);
     }
     return resultado;
   }
+  function consecutivos(){
+    const ids=[];
+    for(let n=1;n<=grupos.size&&grupos.has(n);n++)ids.push(n);
+    return ids;
+  }
   function franjaActual(){
     const fn=window.__pruebaPaletas?.franjaParaFecha;
-    return typeof fn==='function'?fn(new Date()):Math.floor(Date.now()/1800000);
+    return typeof fn==='function'?fn(new Date()):Math.floor((Date.now()-Date.UTC(2026,9,25,5))/1800000);
   }
-  function leerEstado(){
-    try{
-      const d=JSON.parse(localStorage.getItem(CLAVE)||'null');
-      if(Number.isSafeInteger(d?.indice)&&Number.isSafeInteger(d?.franja))return d;
-    }catch(_){/* Almacenamiento no disponible. */}
-    return estadoTemporal;
-  }
-  function guardarEstado(d){
-    estadoTemporal=d;
-    try{localStorage.setItem(CLAVE,JSON.stringify(d));}catch(_){/* Opcional. */}
-  }
-  function consecutivos(){
-    if(!grupos.has(1))return [];
-    const c=[1];
-    while(grupos.has(c[c.length-1]+1))c.push(c[c.length-1]+1);
-    return c;
-  }
-  function estadoParaFranja(franja){
-    const c=consecutivos();
-    if(!c.length)return 0;
-    const ant=leerEstado();
-    if(!ant||!c.includes(ant.indice)||ant.franja>franja)return 1;
-    const pasos=Math.max(0,franja-ant.franja)%c.length;
-    return c[(c.indexOf(ant.indice)+pasos)%c.length];
+  function modulo(valor,n){return ((valor%n)+n)%n;}
+  // En 10*N franjas cada fotografía aparece con cada una de las 10 paletas.
+  // No cambia los identificadores ni reordena los grupos.
+  function seleccionParaFranja(t,n){
+    if(!Number.isSafeInteger(t)||!Number.isSafeInteger(n)||n<1)return null;
+    const paleta=modulo(t,10);
+    const imagen=1+modulo(paleta+Math.floor(t/10),n);
+    return {imagen,paleta,franja:t};
   }
   function ordenarPorResolucion(lista){
-    const dpr=Math.min(window.devicePixelRatio||1, window.innerWidth<600?1.25:1.5);
-    const objetivo=window.innerWidth*dpr;
-    return [...lista].sort((a,b)=>{
-      const ancho=a.ancho||0, otro=b.ancho||0;
-      // Se prefiere la variante más pequeña que cubra la pantalla y luego la mayor disponible.
-      const puntaje=n=>!n?1e8:n>=objetivo?n-objetivo:1e6-n;
-      return puntaje(ancho)-puntaje(otro);
-    });
+    const ahorro=!!navigator.connection?.saveData;
+    const dpr=Math.min(window.devicePixelRatio||1,ahorro?1:window.innerWidth<600?1.5:1.75);
+    const objetivo=Math.round(window.innerWidth*dpr);
+    const puntaje=n=>!n?1e8:n>=objetivo?n-objetivo:1e6-n;
+    return [...lista].sort((a,b)=>puntaje(a.ancho)-puntaje(b.ancho));
   }
   function precargar(ruta){
     return new Promise(resolve=>{
-      const img=new Image();
-      let concluido=false;
-      const cerrar=exito=>{
-        if(concluido)return;
-        concluido=true;clearTimeout(limite);
-        img.onload=null;img.onerror=null;
-        resolve(exito);
+      const img=new Image();let terminado=false;
+      const cerrar=ok=>{
+        if(terminado)return;
+        terminado=true;clearTimeout(limite);img.onload=null;img.onerror=null;
+        resolve(ok?{ancho:img.naturalWidth,alto:img.naturalHeight}:null);
       };
-      const limite=setTimeout(()=>cerrar(false),6500);
+      const limite=setTimeout(()=>cerrar(false),5700);
       img.onload=()=>{
         if(!img.naturalWidth||!img.naturalHeight){cerrar(false);return;}
-        // Decodificar antes de exponerla evita iconos rotos y parpadeos.
         if(typeof img.decode==='function')img.decode().then(()=>cerrar(true),()=>cerrar(false));
         else cerrar(true);
       };
@@ -1186,72 +1174,204 @@
       img.src=ruta;
     });
   }
-  function ocultarFondos(){
-    ++turno;
-    CAPAS.forEach(c=>{c.style.opacity='0';c.style.visibility='hidden';c.style.backgroundImage='none';});
-    capaActiva=-1;rutaActiva='';indiceActivo=0;
+  // La escala cover garantiza que no queden franjas, sea foto vertical u horizontal.
+  function calcularRecorte(iw,ih,vw,vh){
+    if(!iw||!ih||!vw||!vh)return null;
+    const escala=Math.max(vw/iw,vh/ih);
+    const ancho=Math.ceil(iw*escala)+1,alto=Math.ceil(ih*escala)+1;
+    const sobraX=Math.max(0,ancho-vw),sobraY=Math.max(0,alto-vh);
+    const eje=sobraX>sobraY?'x':sobraY>0?'y':null;
+    return {ancho,alto,sobraX,sobraY,eje,centroX:(vw-ancho)/2,centroY:(vh-alto)/2};
   }
-  async function mostrarNumero(numero){
-    const id=++turno;
+  function detenerPaneo(){
+    if(paneo){try{paneo.cancel();}catch(_){}paneo=null;}
+    FOTOS.forEach(f=>f.style.willChange='auto');
+  }
+  function configurarFoto(capa,w,h){
+    const imagen=FOTOS[capa],vw=window.innerWidth,vh=window.innerHeight;
+    const g=calcularRecorte(w,h,vw,vh);
+    if(!g)return null;
+    imagen.style.width=g.ancho+'px';imagen.style.height=g.alto+'px';
+    imagen.style.transform=`translate3d(${g.centroX}px,${g.centroY}px,0)`;
+    return g;
+  }
+  function iniciarPaneo(capa,g){
+    detenerPaneo();
+    if(!g||!g.eje||MOVIMIENTO.matches||document.hidden||!FOTOS[capa].animate)return;
+    const sobrante=g.eje==='x'?g.sobraX:g.sobraY;
+    if(sobrante<16)return;
+    const foto=FOTOS[capa];
+    const mover=desplazamiento=>g.eje==='x'
+      ?`translate3d(${g.centroX+desplazamiento}px,${g.centroY}px,0)`
+      :`translate3d(${g.centroX}px,${g.centroY+desplazamiento}px,0)`;
+    // Cinco segundos iniciales; ir al primer extremo, volver al centro,
+    // visitar el extremo contrario y terminar quieta en el centro.
+    const duracionMovimiento=Math.min(22000,Math.max(10000,sobrante/30*1000));
+    const tiempos=[0,5000,5000+duracionMovimiento,9000+duracionMovimiento,
+      9000+2*duracionMovimiento,13000+2*duracionMovimiento,
+      13000+3*duracionMovimiento,17000+3*duracionMovimiento,
+      17000+4*duracionMovimiento];
+    const total=tiempos[tiempos.length-1];
+    const posiciones=[0,0,sobrante/2,sobrante/2,0,0,-sobrante/2,-sobrante/2,0];
+    // Keyframes inmutables, delegados al compositor; no hay setInterval por píxel.
+    const fotogramas=tiempos.map((ms,i)=>({
+      transform:mover(posiciones[i]),offset:ms/total,easing:i%2===1?'ease-in-out':'linear'
+    }));
+    try{
+      foto.style.willChange='transform';
+      paneo=foto.animate(fotogramas,{duration:total,fill:'forwards',iterations:1});
+      paneo.onfinish=()=>{
+        if(paneo){paneo=null;foto.style.willChange='auto';}
+        foto.style.transform=mover(0);
+      };
+    }catch(_){foto.style.willChange='auto';foto.style.transform=mover(0);}
+  }
+  function ocultarFondos(){
+    ++revision;detenerPaneo();
+    CAPAS.forEach((c,i)=>{
+      c.style.opacity='0';c.style.visibility='hidden';
+      FOTOS[i].style.backgroundImage='none';
+    });
+    capaActiva=-1;rutaActiva='';indiceActivo=0;dimensiones={ancho:0,alto:0};
+  }
+  async function mostrarNumero(numero,franja){
+    const id=++revision;
     const variantes=ordenarPorResolucion(grupos.get(numero)||[]);
     for(const variante of variantes){
-      if(turno!==id)return;
-      if(variante.ruta===rutaActiva && capaActiva!==-1)return;
-      if(!await precargar(variante.ruta))continue;
-      if(turno!==id)return;
+      if(revision!==id || franjaActual()!==franja)return;
+      if(variante.ruta===rutaActiva&&capaActiva>=0){
+        indiceActivo=numero;franjaMostrada=franja;return;
+      }
+      const yaLista=anticipo?.franja===franja && anticipo?.numero===numero &&
+        anticipo?.ruta===variante.ruta ? anticipo.info : null;
+      const info=yaLista || await precargar(variante.ruta);
+      if(revision!==id || franjaActual()!==franja)return;
+      if(!info)continue;
       const nueva=capaActiva===0?1:0;
-      const capa=CAPAS[nueva];
-      capa.style.backgroundImage='url("'+variante.ruta+'")';
+      detenerPaneo();
+      const foto=FOTOS[nueva],capa=CAPAS[nueva];
+      foto.style.backgroundImage='url("'+variante.ruta+'")';
+      const geometria=configurarFoto(nueva,info.ancho,info.alto);
+      if(!geometria)continue;
       capa.style.visibility='visible';
       capa.style.opacity='.30';
       if(capaActiva>=0){
-        CAPAS[capaActiva].style.opacity='0';
-        const anterior=CAPAS[capaActiva];
-        // No ocultar la capa nueva por callbacks rezagados.
-        setTimeout(()=>{if(anterior!==CAPAS[capaActiva]){anterior.style.visibility='hidden';anterior.style.backgroundImage='none';}},950);
+        const antigua=CAPAS[capaActiva],fotoAntigua=FOTOS[capaActiva];
+        antigua.style.opacity='0';
+        setTimeout(()=>{
+          if(antigua!==CAPAS[capaActiva]){
+            antigua.style.visibility='hidden';fotoAntigua.style.backgroundImage='none';
+          }
+        },950);
       }
       capaActiva=nueva;rutaActiva=variante.ruta;indiceActivo=numero;
+      franjaMostrada=franja;dimensiones=info;
+      iniciarPaneo(nueva,geometria);
       return;
     }
-    if(turno===id)ocultarFondos();
+    if(revision===id)ocultarFondos();
   }
-  async function sincronizar(forzar=false){
-    const revision=++revisionListado;
-    const franja=franjaActual();
-    const cambio=franja!==franjaAnterior;
-    franjaAnterior=franja;
-    if(forzar||!iniciada){
-      const listado=await obtenerListado();
-      // Si llegó una actualización posterior, esta respuesta ya no debe modificar el fondo.
-      if(revision!==revisionListado)return;
-      grupos=listado;iniciada=true;
+  async function sincronizar(consultar=false){
+    const id=++revisionListado;
+    const f=franjaActual();
+    if(consultar||!iniciada){
+      const lista=anticipo?.franja===f && anticipo.grupos ? anticipo.grupos : await obtenerListado();
+      if(id!==revisionListado)return;
+      grupos=lista;iniciada=true;
     }
-    if(revision!==revisionListado)return;
-    if(!consecutivos().length){ocultarFondos();return;}
-    const n=estadoParaFranja(franja);
-    guardarEstado({indice:n,franja});
-    if(cambio||forzar||!rutaActiva)await mostrarNumero(n);
+    if(id!==revisionListado)return;
+    const n=consecutivos().length;
+    if(!n){ocultarFondos();programarAnticipo();return;}
+    const elegida=seleccionParaFranja(f,n);
+    if(!elegida)return;
+    if(franjaMostrada!==f || indiceActivo!==elegida.imagen){
+      // No mostrar indefinidamente la imagen de una franja anterior.
+      // La superficie sólida sigue disponible mientras se descarga la siguiente.
+      ocultarFondos();
+      await mostrarNumero(elegida.imagen,f);
+    }
+    if(anticipo?.franja===f)anticipo=null;
+    programarAnticipo();
+  }
+  // A 45 segundos del siguiente cambio, consultar y decodificar una sola foto.
+  // Esto se ejecuta fuera de la navegación y evita trabajo intenso en el cambio horario.
+  function programarAnticipo(){
+    clearTimeout(temporizadorAnticipo);
+    const origen=Date.UTC(2026,9,25,5);
+    const transcurrido=((Date.now()-origen)%1800000+1800000)%1800000;
+    const faltan=1800000-transcurrido;
+    temporizadorAnticipo=setTimeout(()=>{void prepararSiguiente();},Math.max(1000,faltan-45000));
+  }
+  async function prepararSiguiente(){
+    if(document.hidden)return;
+    if(document.activeElement?.id==='comando'){
+      temporizadorAnticipo=setTimeout(()=>{void prepararSiguiente();},4500);
+      return;
+    }
+    const id=++revisionAnticipo, f=franjaActual();
+    const siguiente=f+1;
+    const lista=await obtenerListado();
+    if(id!==revisionAnticipo||franjaActual()!==f)return;
+    const consecutivosDisponibles=[];
+    for(let n=1;n<=lista.size&&lista.has(n);n++)consecutivosDisponibles.push(n);
+    const seleccion=seleccionParaFranja(siguiente,consecutivosDisponibles.length);
+    if(!seleccion){anticipo={franja:siguiente,grupos:lista};return;}
+    // Priorizar una sola variante. La selección normal conserva sus respaldos.
+    const variante=ordenarPorResolucion(lista.get(seleccion.imagen)||[])[0];
+    const info=variante?await precargar(variante.ruta):null;
+    if(id!==revisionAnticipo||franjaActual()!==f)return;
+    anticipo={franja:siguiente,grupos:lista,numero:seleccion.imagen,
+      ruta:variante?.ruta||'',info};
+  }
+  function programarSincronizacion(){
+    if(trabajoPendiente)return;
+    trabajoPendiente=true;
+    const ejecutar=()=>{trabajoPendiente=false;void sincronizar(!iniciada);};
+    if('requestIdleCallback' in window)requestIdleCallback(ejecutar,{timeout:1800});
+    else setTimeout(ejecutar,450);
   }
   addEventListener('recursos:cambio-paleta',()=>{void sincronizar(true);});
   document.addEventListener('visibilitychange',()=>{
-    if(!document.hidden && franjaActual()!==franjaAnterior)void sincronizar(true);
+    if(document.hidden){paneo?.pause();clearTimeout(temporizadorAnticipo);++revisionAnticipo;}
+    else {
+      if(franjaMostrada!==franjaActual())void sincronizar(true);
+      else {paneo?.play();programarAnticipo();}
+    }
   });
   addEventListener('resize',()=>{
     clearTimeout(resizeTimer);
-    resizeTimer=setTimeout(()=>{if(indiceActivo)void mostrarNumero(indiceActivo);},300);
+    resizeTimer=setTimeout(()=>{
+      if(capaActiva<0)return;
+      // Evitar reiniciar el fondo al abrir el teclado; el buscador tiene su propio ajuste.
+      if(document.activeElement?.id==='comando'&&window.innerWidth===ultimaLista[0])return;
+      const info=dimensiones;
+      if(info.ancho&&info.alto){
+        const g=configurarFoto(capaActiva,info.ancho,info.alto);
+        iniciarPaneo(capaActiva,g);
+      }
+      ultimaLista=[window.innerWidth,window.innerHeight];
+    },350);
   },{passive:true});
+  MOVIMIENTO.addEventListener?.('change',()=>{
+    if(MOVIMIENTO.matches)detenerPaneo();
+    else if(capaActiva>=0)iniciarPaneo(capaActiva,configurarFoto(capaActiva,dimensiones.ancho,dimensiones.alto));
+  });
+  ultimaLista=[window.innerWidth,window.innerHeight];
   window.__pruebaImagenes={
-    estado:()=>({grupo:indiceActivo,franja:franjaAnterior,cantidad:grupos.size,ruta:rutaActiva,opacidad:.30}),
-    analizarRuta,ordenarPorResolucion,consecutivos,
+    estado:()=>({grupo:indiceActivo,franja:franjaMostrada,cantidad:grupos.size,ruta:rutaActiva,
+      opacidad:.30,paneo:!!paneo,dimensiones}),
+    analizarRuta,ordenarPorResolucion,consecutivos,seleccionParaFranja,calcularRecorte,
     simular:async rutas=>{
       const mapa=new Map();integrarRutas(rutas,mapa);grupos=mapa;iniciada=true;
-      const f=franjaActual();franjaAnterior=f;
-      if(consecutivos().length){const n=estadoParaFranja(f);guardarEstado({indice:n,franja:f});await mostrarNumero(n);}
-      else ocultarFondos();
+      const f=franjaActual();franjaMostrada=null;
+      if(consecutivos().length){
+        const n=seleccionParaFranja(f,consecutivos().length);
+        ocultarFondos();await mostrarNumero(n.imagen,f);
+      }else ocultarFondos();
     }
   };
-  // No bloquear ni el primer pintado ni las búsquedas por comprobar imágenes.
-  requestAnimationFrame(()=>setTimeout(()=>{void sincronizar(true);},180));
+  // Primer renderizado: el navegador dispone antes de fondo sólido, firma SVG y buscador.
+  requestAnimationFrame(programarSincronizacion);
 })();
 </script>
 
@@ -1318,11 +1438,18 @@ function mecanismo(fase,index){let x=origenX,y=origenY;
   }
   return {x:px[index],y:py[index],cx:x,cy:y,cs:anillosReutilizables,limite};
 }
-function dibujarBrazos(p){
-  // Igual que la barra: color del borde, con 20 % de transparencia (80 % visible).
+let colorBrazos='#FFD85E', fondoArticulacion='#0E0F0B';
+function actualizarTonosBrazos(){
   const estilo=getComputedStyle(document.documentElement);
-  const color=estilo.getPropertyValue('--borde-fuerte').trim() || '#FFD85E';
-  const fondo=estilo.getPropertyValue('--panel').trim() || '#0E0F0B';
+  colorBrazos=estilo.getPropertyValue('--borde-fuerte').trim() || '#FFD85E';
+  fondoArticulacion=estilo.getPropertyValue('--panel').trim() || '#0E0F0B';
+}
+actualizarTonosBrazos();
+addEventListener('recursos:cambio-paleta',actualizarTonosBrazos);
+function dibujarBrazos(p){
+  // Cachear tonos de la paleta: sin lectura de estilos por fotograma.
+  const color=colorBrazos;
+  const fondo=fondoArticulacion;
   const uniones=[];
   ctx.save();
   ctx.lineCap='round';ctx.lineJoin='round';
@@ -1355,7 +1482,8 @@ function dibujarBrazos(p){
 }
 function frame(time){
   raf=requestAnimationFrame(frame);
-  if(document.hidden || time-ultimoFotograma<intervaloFotograma)return;
+  const intervalo=document.activeElement?.id==='comando'?1000/15:intervaloFotograma;
+  if(document.hidden || time-ultimoFotograma<intervalo)return;
   ultimoFotograma=time;
   const sec=Math.max(0,(time-t0)/1000),real=sec/DURACION,c=Math.floor(real),u=real-c,d=u<.5?0:1;
   if(c!==ciclo||d!==sentido)begin(c,d);
@@ -1385,7 +1513,12 @@ window.__pruebaFirma={estado:()=>({listo:maquina.length>0,armónicos:maquina.len
   avanzar:(s)=>{t0=performance.now()-s*1000;ciclo=-1;sentido=-1;ultimoFotograma=0}};
 // Firma estática visible desde el inicio. Animación diferida tras el primer renderizado.
 function iniciarDiferido(){
-  const ejecutar=()=>{try{init()}catch(_){/* La firma estática permanece disponible. */}};
+  const ejecutar=()=>{
+    if(document.hidden){document.addEventListener('visibilitychange',()=>{
+      if(!document.hidden&&!maquina.length){try{init()}catch(_){/* Firma SVG estable. */}}
+    },{once:true});return;}
+    try{init()}catch(_){/* La firma SVG permanece. */}
+  };
   if('requestIdleCallback' in window)requestIdleCallback(ejecutar,{timeout:1700});
   else setTimeout(ejecutar,850);
 }
