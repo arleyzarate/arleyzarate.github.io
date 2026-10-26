@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#312F30">
-  <meta name="recursos-version" content="2026.10.25.13">
+  <meta name="recursos-version" content="2026.10.25.15">
   <meta name="description" content="Recursos | Arley Zarate. Herramientas y archivos con búsqueda en tiempo real.">
   <title>Recursos | Arley Zarate</title>
   <!-- La interfaz esencial es visible desde el primer renderizado. -->
@@ -453,11 +453,18 @@
       { nombre:'07 · Grafito azulado', modo:'oscuro', fondo:'#272A2D', panel:'#0E0F0B', acento:'#347CCB', acentoTexto:'#B2D7FF', secundario:'#FE813C', tinta:'#B2D7FF', orbita:'#FFFFFF', eje:'#C3E0FF', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#B2D7FF' },
       { nombre:'08 · Amarillo luminoso', modo:'claro', fondo:'#FFD85E', panel:'#FFFFFF', acento:'#303030', acentoTexto:'#303030', secundario:'#7477FF', tinta:'#312F30', orbita:'#312F30', eje:'#0E0F0B', referencia:'#312F30', lluvia:'#312F30', lluviaBrillo:'#0E0F0B' },
       { nombre:'09 · Violeta profundo', modo:'oscuro', fondo:'#262535', panel:'#0E0F0B', acento:'#7477FF', acentoTexto:'#B5B7FF', secundario:'#F9CD61', tinta:'#B5B7FF', orbita:'#FFFFFF', eje:'#B5B7FF', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#7477FF' },
-      { nombre:'10 · Naranja aventura', modo:'claro', fondo:'#FE813C', panel:'#FFFFFF', acento:'#312F30', acentoTexto:'#312F30', secundario:'#727E6E', tinta:'#0E0F0B', orbita:'#0E0F0B', eje:'#0E0F0B', referencia:'#0E0F0B', lluvia:'#0E0F0B', lluviaBrillo:'#0E0F0B' }
+      { nombre:'10 · Naranja aventura', modo:'claro', fondo:'#FE813C', panel:'#FFFFFF', acento:'#312F30', acentoTexto:'#312F30', secundario:'#727E6E', tinta:'#0E0F0B', orbita:'#0E0F0B', eje:'#0E0F0B', referencia:'#0E0F0B', lluvia:'#0E0F0B', lluviaBrillo:'#0E0F0B' },
+      { nombre:'11 · Acero carmín', modo:'oscuro', fondo:'#0A1A24', panel:'#1D4252', acento:'#B4894D', acentoTexto:'#E6D9CB', secundario:'#A01B24', tinta:'#DCE4E8', orbita:'#FFFFFF', eje:'#E6D9CB', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#B4894D', tonos:['#0A1A24','#1D4252','#91A4AE','#A01B24','#B4894D','#B39E92'] },
+      { nombre:'12 · Cian industrial', modo:'oscuro', fondo:'#2C8092', panel:'#3F606F', acento:'#00D6D1', acentoTexto:'#D8FBFC', secundario:'#9F6360', tinta:'#D8FBFC', orbita:'#FFFFFF', eje:'#C7FFFF', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#00D6D1', tonos:['#3F606F','#2C8092','#00D6D1','#5B363C','#9F6360','#FFFFFF'] },
+      { nombre:'13 · Oliva mecánica', modo:'oscuro', fondo:'#1E1B18', panel:'#353118', acento:'#D5D57E', acentoTexto:'#F4F2C4', secundario:'#A05A0D', tinta:'#E8E0C1', orbita:'#FFFFFF', eje:'#F4F2C4', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#D5D57E', tonos:['#1E1B18','#353118','#736A2E','#D5D57E','#C2B28C','#A05A0D'] },
+      { nombre:'14 · Cumbre cobriza', modo:'oscuro', fondo:'#011D32', panel:'#564055', acento:'#F5AD67', acentoTexto:'#F8DABE', secundario:'#95432C', tinta:'#F8DABE', orbita:'#FFFFFF', eje:'#FDE5CA', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#F5AD67', tonos:['#2E717E','#011D32','#564055','#95432C','#F8DABE','#F5AD67'] },
+      { nombre:'15 · Coral costero', modo:'claro', fondo:'#FFF0A5', panel:'#FFFFFF', acento:'#DE433C', acentoTexto:'#A7312C', secundario:'#437C88', tinta:'#171E28', orbita:'#171E28', eje:'#171E28', referencia:'#171E28', lluvia:'#171E28', lluviaBrillo:'#171E28', tonos:['#171E28','#3A464E','#437C88','#DE433C','#FA845A','#FFF0A5'] },
+      { nombre:'16 · Aurora digital', modo:'oscuro', fondo:'#07164C', panel:'#2A345F', acento:'#29D2EB', acentoTexto:'#DDFBFF', secundario:'#BD5261', tinta:'#DDFBFF', orbita:'#FFFFFF', eje:'#C3F9FF', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#29D2EB', tonos:['#07164C','#2A345F','#67344E','#BD5261','#247FA7','#29D2EB'] }
     ];
-    // Diez grupos numerados, oscuro/claro intercalados cada 30 minutos.
+    // Grupos numerados con identificadores permanentes. Cada grupo conserva su
+    // combinación interna de colores y solo rota como bloque completo.
     // El día de Colombia participa en el índice: las 48 franjas de un día
-    // desplazan el punto inicial del día siguiente en la secuencia de 10.
+    // desplazan el punto inicial del día siguiente en la secuencia completa de grupos.
     // Se usa el reloj del dispositivo con zona America/Bogota (UTC-5 sin DST).
     const MS_MEDIA_HORA = 30 * 60 * 1000;
     const MS_COLOMBIA = 5 * 60 * 60 * 1000;
@@ -487,7 +494,7 @@
       return dia * 48 + f.hour * 2 + Math.floor(f.minute / 30);
     }
     // Fecha de origen fija: 25/10/2026, 00:00 de Colombia (UTC-5).
-    // Los IDs 01..10 son permanentes; nunca se ordenan por luminosidad.
+    // Los identificadores de grupo son permanentes; nunca se ordenan por luminosidad.
     const ORIGEN_FRANJA = Math.floor(Date.UTC(2026, 9, 25, 5) / MS_MEDIA_HORA);
     const moduloPositivo = (valor, n) => ((valor % n) + n) % n;
     function franjaDesdeOrigen(fecha = new Date()) {
@@ -567,7 +574,8 @@
       indiceParaFecha: indiceTemaColombia,
       alternancia: PALETAS.map(p => p.modo),
       actualizar: actualizarTema,
-      transicionActiva: false
+      transicionActiva: false,
+      colores: () => PALETAS.map(p => ({nombre:p.nombre, modo:p.modo, fondo:p.fondo, panel:p.panel, acento:p.acento, secundario:p.secundario}))
     };
 
     const formulario = document.getElementById('formulario');
@@ -741,6 +749,7 @@
     const nombresLocales = () => Array.isArray(window.RECURSOS_ARCHIVOS) ? window.RECURSOS_ARCHIVOS : [];
     let catalogo = [];
     let carpetasDisponibles = [];
+    let contenidoPorCarpeta = new Map();
     let carpetaActiva = null;
     let cargando = true;
     let errorCatalogo = false;
@@ -749,14 +758,30 @@
     let archivoPendiente = null;
 
     const claveCarpeta = ruta => normalizar(ruta).replace(/[\s_-]+/g, '');
+    const contenidoCarpeta = ruta => contenidoPorCarpeta.get(ruta) || 0;
+    // Los HTML aparecen como aplicaciones (ABRIR), pero NO justifican una
+    // sugerencia de CARPETA. Solo cuentan descargas autorizadas por extensiones.js.
+    function esDescargableEnCarpeta(item) {
+      if (!item || item.pagina || item.indice || !item.ruta) return false;
+      const archivo = item.ruta.split('/').at(-1);
+      const extension = extensionDe(archivo);
+      return EXTENSIONES_PERMITIDAS.has(extension) &&
+        !EXTENSIONES_CODIGO.has(extension) && !EXCLUIDOS.test(archivo);
+    }
     function actualizarCarpetas() {
-      const rutas = new Set();
+      const conteos = new Map();
       for (const item of catalogo) {
+        if (!esDescargableEnCarpeta(item)) continue;
         const partes = item.ruta.split('/').slice(0, -1);
-        for (let n = 1; n <= partes.length; n++) rutas.add(partes.slice(0, n).join('/'));
+        for (let n = 1; n <= partes.length; n++) {
+          const ruta = partes.slice(0, n).join('/');
+          conteos.set(ruta, (conteos.get(ruta) || 0) + 1);
+        }
       }
-      carpetasDisponibles = [...rutas].sort((a,b) =>
-        a.split('/').length - b.split('/').length || a.localeCompare(b,'es',{sensitivity:'base'}));
+      contenidoPorCarpeta = conteos;
+      carpetasDisponibles = [...conteos.keys()]
+        .sort((a,b) => a.split('/').length - b.split('/').length ||
+          a.localeCompare(b,'es',{sensitivity:'base'}));
     }
     function encontrarCarpetaExacta(texto) {
       if (carpetaActiva || !texto) return null;
@@ -766,7 +791,7 @@
       return carpetasDisponibles.find(r => claveCarpeta(r.split('/').at(-1)) === busca) || null;
     }
     function buscarEnCarpeta(ruta) {
-      if (!ruta || !carpetasDisponibles.includes(ruta)) return;
+      if (!ruta || !carpetasDisponibles.includes(ruta) || contenidoCarpeta(ruta) < 1) return;
       carpetaActiva = ruta;
       entrada.value = '';
       alcanceActual.hidden = false;
@@ -792,7 +817,7 @@
     quitarCarpeta.addEventListener('click', quitarAlcance);
     // Ayuda de pruebas locales, sin controles decorativos en la pantalla.
     window.__pruebaCarpetas = {estado: () => ({carpeta:carpetaActiva,
-      disponibles:carpetasDisponibles.slice(),total:coincidencias.length}),abrir:buscarEnCarpeta,salir:quitarAlcance};
+      disponibles:carpetasDisponibles.slice(),conteos:Object.fromEntries(contenidoPorCarpeta),total:coincidencias.length}),abrir:buscarEnCarpeta,salir:quitarAlcance};
 
     function notificar(mensaje, tipo = '') {
       estado.textContent = mensaje;
@@ -922,7 +947,8 @@
       const archivos = catalogo.filter(dentro).map(item => ({
         item, puntaje: consulta ? comparar(item, consulta) : 0
       })).filter(r => r.puntaje !== null);
-      const carpetas = carpetaActiva ? [] : carpetasDisponibles.filter(r => {
+      if (carpetaActiva && contenidoCarpeta(carpetaActiva) < 1) { notificar('La carpeta seleccionada no contiene archivos descargables.', 'info'); return; }
+      const carpetas = carpetaActiva ? [] : carpetasDisponibles.filter(r => contenidoCarpeta(r) > 0).filter(r => {
         const buscado = claveCarpeta(consulta);
         return buscado && (claveCarpeta(r).startsWith(buscado) ||
           claveCarpeta(r.split('/').at(-1)).startsWith(buscado));
@@ -1141,12 +1167,13 @@
     return typeof fn==='function'?fn(new Date()):Math.floor((Date.now()-Date.UTC(2026,9,25,5))/1800000);
   }
   function modulo(valor,n){return ((valor%n)+n)%n;}
-  // En 10*N franjas cada fotografía aparece con cada una de las 10 paletas.
-  // No cambia los identificadores ni reordena los grupos.
+  // En P*N franjas cada fotografía aparece con cada uno de los P grupos.
+  // No cambia los identificadores ni reordena los grupos cromáticos.
   function seleccionParaFranja(t,n){
     if(!Number.isSafeInteger(t)||!Number.isSafeInteger(n)||n<1)return null;
-    const paleta=modulo(t,10);
-    const imagen=1+modulo(paleta+Math.floor(t/10),n);
+    const totalPaletas=Math.max(1, Number(window.__pruebaPaletas?.total) || PALETAS.length || 1);
+    const paleta=modulo(t,totalPaletas);
+    const imagen=1+modulo(paleta+Math.floor(t/totalPaletas),n);
     return {imagen,paleta,franja:t};
   }
   function ordenarPorResolucion(lista){
