@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#312F30">
-  <meta name="recursos-version" content="2026.10.26.18">
+  <meta name="recursos-version" content="2026.10.26.19">
   <meta name="description" content="Recursos | Arley Zarate. Herramientas y archivos con búsqueda en tiempo real.">
   <title>Recursos | Arley Zarate</title>
   <!-- La interfaz esencial es visible desde el primer renderizado. -->
@@ -122,7 +122,7 @@
     .abrir:hover, .abrir:focus-visible { background: var(--boton-hover); outline: 2px solid color-mix(in srgb, var(--acento) 58%, transparent); }
     .estado {
       min-height: 28px; padding-top: 12px; text-align: center;
-      font: 700 13px/1.35 var(--fuente-ui); text-transform: uppercase; letter-spacing: .08em;
+      font: 700 13px/1.35 var(--fuente-ui); text-transform: none; letter-spacing: .025em;
       color: transparent;
       text-shadow: 0 2px 15px rgba(0,0,0,.6);
     }
@@ -158,7 +158,7 @@
       position: absolute; pointer-events: none; user-select: none;
       left: 64px; right: 69px; top: 50%; transform: translateY(-50%);
       font: 700 clamp(16px, 2vw, 19px)/1.1 var(--fuente-ui);
-      color: var(--texto-apagado); text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; overflow: hidden;
+      color: var(--texto-apagado); text-transform: none; letter-spacing: .02em; white-space: nowrap; overflow: hidden;
     }
     .cursor-parpadeo { color: var(--acento-lectura); font-family: var(--fuente-mono); font-weight: 700; animation: parpadear 1s steps(1) infinite; }
     @keyframes parpadear { 0%, 49% { opacity: 1; } 50%,100% { opacity: 0; } }
@@ -177,7 +177,7 @@
     .resultado {
       width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px;
       color: var(--texto); background: transparent; border: none; border-radius: 9px;
-      cursor: pointer; font: 700 14px/1.28 var(--fuente-ui); text-transform: uppercase; letter-spacing: .04em;
+      cursor: pointer; font: 700 14px/1.28 var(--fuente-ui); text-transform: none; letter-spacing: .015em;
       text-align: left; padding: 10px 12px;
     }
     .resultado:hover, .resultado.activo { background: var(--seleccion); }
@@ -190,10 +190,10 @@
     .estado.info { color: var(--info); }
     .modal { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: 18px; background: rgba(0,0,0,.58); backdrop-filter: blur(8px); }
     .cuadro-modal { width: min(460px,100%); padding: 27px; border-radius: 19px; border: 1px solid var(--borde-fuerte); background: var(--panel-solido); box-shadow: 0 18px 70px rgba(0,0,0,.35); }
-    .cuadro-modal h2 { margin: 0 0 12px; font-size: 21px; line-height: 1.15; font-weight: 800; font-family: var(--fuente-ui); text-transform: uppercase; letter-spacing: .04em; }
+    .cuadro-modal h2 { margin: 0 0 12px; font-size: 21px; line-height: 1.15; font-weight: 800; font-family: var(--fuente-ui); text-transform: none; letter-spacing: .015em; }
     .cuadro-modal p { line-height: 1.5; font-size: 15px; overflow-wrap: anywhere; color: var(--texto-suave); }
     .botones-modal { display: flex; gap: 11px; justify-content: flex-end; margin-top: 25px; }
-    .botones-modal button { padding: 11px 17px; border-radius: 9px; border: 1px solid var(--borde); font: 800 14px var(--fuente-ui); color: var(--texto); background: color-mix(in srgb, var(--panel-solido) 86%, var(--acento-2) 14%); cursor: pointer; text-transform: uppercase; letter-spacing: .05em; }
+    .botones-modal button { padding: 11px 17px; border-radius: 9px; border: 1px solid var(--borde); font: 800 14px var(--fuente-ui); color: var(--texto); background: color-mix(in srgb, var(--panel-solido) 86%, var(--acento-2) 14%); cursor: pointer; text-transform: none; letter-spacing: .015em; }
     .botones-modal .confirmar { background: var(--acento); color: var(--texto-contraste); border-color: color-mix(in srgb, var(--acento) 70%, black 30%); }
     .botones-modal button:focus-visible, .resultado:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
     @media (max-width:560px) {
@@ -207,8 +207,7 @@
     .comandos::after { display: none; }
     .comandos > * { z-index: 1; }
 
-    /* Firma Fourier: reemplaza exclusivamente el texto anterior del título.
-       Su referencia permanece legible durante todo el ciclo y los diez fondos. */
+    /* Firma Fourier autónoma: legible con los grupos cromáticos. */
     .titulo-firma {
       position: relative; width: 100%; height: auto; aspect-ratio: 1000 / 260;
       margin: 0 0 clamp(8px, 1.7vw, 16px);
@@ -301,7 +300,7 @@
     /* El buscador mantiene la pista de texto o muestra un alcance real por carpeta. */
     .alcance-actual { display:flex; align-items:center; flex:0 1 auto; gap:8px;
       min-width:0; white-space:nowrap; color:var(--texto-apagado);
-      font:800 clamp(12px,1.6vw,16px)/1.1 var(--fuente-ui); text-transform:uppercase; }
+      font:800 clamp(12px,1.6vw,16px)/1.1 var(--fuente-ui); text-transform:none; }
     .alcance-actual[hidden] { display:none !important; }
     .carpeta-etiqueta { display:inline-flex; align-items:center; gap:6px; min-width:0; max-width:210px;
       color:var(--acento-lectura); background:color-mix(in srgb,var(--acento) 12%,transparent);
@@ -399,9 +398,9 @@
   </div>
   <script>
     'use strict';
-    // Se usan 10 temas alternados por horario de Colombia, sin cambios visibles
-    // mientras la pagina permanece abierta. Se preservan los colores de las
-    // referencias de Arley y se asignan cinco fondos oscuros y cinco claros.
+    // Los grupos cromáticos tienen IDs permanentes. Se seleccionan por el
+    // minuto de Colombia y avanzan cada 30 minutos desde el ingreso.
+    // Los grupos añadidos nunca alteran los originales.
     const PALETAS = [
       { nombre:'01 · Grafito fuerte', modo:'oscuro', fondo:'#312F30', panel:'#0E0F0B', acento:'#FFD85E', acentoTexto:'#FFD85E', secundario:'#7477FF', tinta:'#FFD85E', orbita:'#FFFFFF', eje:'#FFD85E', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#FFD85E' },
       { nombre:'02 · Blanco técnico', modo:'claro', fondo:'#FFFFFF', panel:'#FFFFFF', acento:'#C34C3F', acentoTexto:'#A33C30', secundario:'#F66554', tinta:'#9D342D', orbita:'#312F30', eje:'#0E0F0B', referencia:'#312F30', lluvia:'#312F30', lluviaBrillo:'#0E0F0B' },
@@ -418,7 +417,14 @@
       { nombre:'13 · Oliva mecánica', modo:'oscuro', fondo:'#1E1B18', panel:'#353118', acento:'#D5D57E', acentoTexto:'#F4F2C4', secundario:'#A05A0D', tinta:'#E8E0C1', orbita:'#FFFFFF', eje:'#F4F2C4', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#D5D57E', tonos:['#1E1B18','#353118','#736A2E','#D5D57E','#C2B28C','#A05A0D'] },
       { nombre:'14 · Cumbre cobriza', modo:'oscuro', fondo:'#011D32', panel:'#564055', acento:'#F5AD67', acentoTexto:'#F8DABE', secundario:'#95432C', tinta:'#F8DABE', orbita:'#FFFFFF', eje:'#FDE5CA', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#F5AD67', tonos:['#2E717E','#011D32','#564055','#95432C','#F8DABE','#F5AD67'] },
       { nombre:'15 · Coral costero', modo:'claro', fondo:'#FFF0A5', panel:'#FFFFFF', acento:'#DE433C', acentoTexto:'#A7312C', secundario:'#437C88', tinta:'#171E28', orbita:'#171E28', eje:'#171E28', referencia:'#171E28', lluvia:'#171E28', lluviaBrillo:'#171E28', tonos:['#171E28','#3A464E','#437C88','#DE433C','#FA845A','#FFF0A5'] },
-      { nombre:'16 · Aurora digital', modo:'oscuro', fondo:'#07164C', panel:'#2A345F', acento:'#29D2EB', acentoTexto:'#DDFBFF', secundario:'#BD5261', tinta:'#DDFBFF', orbita:'#FFFFFF', eje:'#C3F9FF', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#29D2EB', tonos:['#07164C','#2A345F','#67344E','#BD5261','#247FA7','#29D2EB'] }
+      { nombre:'16 · Aurora digital', modo:'oscuro', fondo:'#07164C', panel:'#2A345F', acento:'#29D2EB', acentoTexto:'#DDFBFF', secundario:'#BD5261', tinta:'#DDFBFF', orbita:'#FFFFFF', eje:'#C3F9FF', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#29D2EB', tonos:['#07164C','#2A345F','#67344E','#BD5261','#247FA7','#29D2EB'] },
+      // Referencias aportadas el 26/10/2026. Los tres tonos originales se conservan
+      // en `tonos`; paneles o textos de apoyo se derivan solo para garantizar contraste.
+      { nombre:'17 · Laguna oliva', modo:'oscuro', fondo:'#025959', panel:'#092F31', acento:'#04BFBF', acentoTexto:'#9CF4F1', secundario:'#A0A603', tinta:'#DCFDFC', orbita:'#FFFFFF', eje:'#9CF4F1', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#04BFBF', tonos:['#A0A603','#025959','#04BFBF'] },
+      { nombre:'18 · Cobre vegetal', modo:'oscuro', fondo:'#AA4A03', panel:'#2D1B10', acento:'#AA8D03', acentoTexto:'#EBD98C', secundario:'#508E03', tinta:'#F9E9D7', orbita:'#FFFFFF', eje:'#EBD98C', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#AA8D03', tonos:['#AA8D03','#508E03','#AA4A03'] },
+      { nombre:'19 · Marfil tropical', modo:'claro', fondo:'#FCE3A7', panel:'#FFFFFF', acento:'#007E4A', acentoTexto:'#006B3E', secundario:'#F95443', tinta:'#133E2E', orbita:'#0F3125', eje:'#0F3125', referencia:'#0F3125', lluvia:'#0F3125', lluviaBrillo:'#007E4A', tonos:['#FCE3A7','#007E4A','#F95443'] },
+      { nombre:'20 · Rojo nocturno', modo:'oscuro', fondo:'#0F0E14', panel:'#1A1820', acento:'#ED0225', acentoTexto:'#FF9AAB', secundario:'#DFDFE5', tinta:'#FFFFFF', orbita:'#FFFFFF', eje:'#FF9AAB', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#ED0225', tonos:['#ED0225','#0F0E14','#DFDFE5'] },
+      { nombre:'21 · Horizonte fresco', modo:'oscuro', fondo:'#308AD9', panel:'#103251', acento:'#F2BC57', acentoTexto:'#FFE2A6', secundario:'#4AD97C', tinta:'#E9F9FF', orbita:'#FFFFFF', eje:'#FFE2A6', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#F2BC57', tonos:['#308AD9','#4AD97C','#F2BC57'] }
     ];
     // Grupos numerados con identificadores permanentes. Cada grupo conserva su
     // combinación interna de colores y solo rota como bloque completo.
@@ -720,6 +726,32 @@
     const esHTML = nombre => /\.html?$/i.test(nombre);
     const esIndice = nombre => /^index\.html$/i.test(nombre);
     const nombreAmigable = nombre => nombre.replace(/[_\-]+/g, ' ').replace(/\s+/g, ' ').trim();
+    // Presentación exclusivamente visual: se conservan intactos nombres reales,
+    // rutas, consultas y archivos descargados. Las denominaciones conocidas
+    // prevalecen sobre el estilo tipográfico de la interfaz.
+    const NOMBRES_OFICIALES = Object.freeze({
+      autocad:'AutoCAD', smart3d:'Smart3D', nodolibre:'NodoLibre',
+      scalesinc:'ScaleSinc', scalesync:'ScaleSinc', html:'HTML', pdf:'PDF',
+      dwg:'DWG', dxf:'DXF', lsp:'LSP', csv:'CSV'
+    });
+    function nombreVisible(nombre) {
+      const limpio = nombreAmigable(String(nombre || ''));
+      const presentado = limpio.replace(/auto\s*cad|smart\s*3d|nodo\s*libre|scale\s*(?:sinc|sync)|[\p{L}\d]+/giu, fragmento => {
+        const oficial = NOMBRES_OFICIALES[simplificar(fragmento)];
+        if (oficial) return oficial;
+        // Solo los términos completamente MAYÚSCULOS se convierten a caja mixta;
+        // las marcas ya escritas con su capitalización original se respetan.
+        return /^[\p{Lu}\d]+$/u.test(fragmento) && /\p{L}/u.test(fragmento)
+          ? fragmento[0].toLocaleUpperCase('es-CO') + fragmento.slice(1).toLocaleLowerCase('es-CO')
+          : fragmento;
+      });
+      return presentado ? presentado[0].toLocaleUpperCase('es-CO') + presentado.slice(1) : presentado;
+    }
+    function archivoVisible(nombre) {
+      const punto = nombre.lastIndexOf('.');
+      if (punto < 1) return nombreVisible(nombre);
+      return nombreVisible(nombre.slice(0, punto)) + nombre.slice(punto).toLowerCase();
+    }
     function rutaSegura(ruta) {
       if (typeof ruta !== 'string' || !ruta || /[\\\u0000-\u001f\u007f]/.test(ruta)) return false;
       const piezas = ruta.split('/');
@@ -737,8 +769,8 @@
       if (esIndice(archivo) && partes.length > 1) {
         const nombreCarpeta = partes[partes.length - 2];
         return {
-          ruta, titulo: nombreAmigable(nombreCarpeta),
-          ubicacion: partes.slice(0, -2).map(nombreAmigable).join(' / '),
+          ruta, titulo: nombreVisible(nombreCarpeta),
+          ubicacion: partes.slice(0, -2).map(nombreVisible).join(' / '),
           buscar: partes.slice(0, -1).map(nombreAmigable).join(' '),
           pagina: true, indice: true, descarga: ''
         };
@@ -746,8 +778,8 @@
       if (EXCLUIDOS.test(archivo)) return null;
       const pagina = esHTML(archivo);
       return {
-        ruta, titulo: pagina ? nombreAmigable(archivo.replace(/\.html?$/i, '')) : archivo,
-        ubicacion: partes.slice(0, -1).map(nombreAmigable).join(' / '),
+        ruta, titulo: pagina ? nombreVisible(archivo.replace(/\.html?$/i, '')) : archivoVisible(archivo),
+        ubicacion: partes.slice(0, -1).map(nombreVisible).join(' / '),
         buscar: rutaCarpeta.replace(/[/_\-]+/g, ' ') + ' ' + archivo + ' ' + (pagina ? archivo.replace(/\.html?$/i, '') : ''),
         pagina, indice: false, descarga: archivo
       };
@@ -818,7 +850,7 @@
       entrada.value = '';
       alcanceActual.hidden = false;
       formulario.classList.add('con-alcance');
-      nombreCarpeta.textContent = ruta.split('/').at(-1);
+      nombreCarpeta.textContent = nombreVisible(ruta.split('/').at(-1));
       quitarCarpeta.setAttribute('aria-label', 'Quitar filtro de ' + ruta);
       entrada.setAttribute('aria-label','Buscar dentro de ' + ruta);
       entrada.placeholder = 'Filtrar…';
@@ -975,8 +1007,8 @@
         return buscado && (claveCarpeta(r).startsWith(buscado) ||
           claveCarpeta(r.split('/').at(-1)).startsWith(buscado));
       }).slice(0, 12).map(ruta => ({
-        item: {titulo: ruta.split('/').at(-1), ruta, rutaCarpeta:ruta,
-          ubicacion: ruta.includes('/') ? ruta.slice(0, ruta.lastIndexOf('/')).replaceAll('/',' / ') : '',
+        item: {titulo: nombreVisible(ruta.split('/').at(-1)), ruta, rutaCarpeta:ruta,
+          ubicacion: ruta.includes('/') ? ruta.slice(0, ruta.lastIndexOf('/')).split('/').map(nombreVisible).join(' / ') : '',
           carpetaFiltro:true},puntaje:-1
       }));
       coincidencias = carpetas.concat(archivos)
