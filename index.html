@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#312F30">
-  <meta name="recursos-version" content="2026.10.25.15">
+  <meta name="recursos-version" content="2026.10.25.16">
   <meta name="description" content="Recursos | Arley Zarate. Herramientas y archivos con búsqueda en tiempo real.">
   <title>Recursos | Arley Zarate</title>
   <!-- La interfaz esencial es visible desde el primer renderizado. -->
@@ -493,15 +493,77 @@
       const dia = Math.floor(Date.UTC(f.year, f.month-1, f.day) / 86400000);
       return dia * 48 + f.hour * 2 + Math.floor(f.minute / 30);
     }
-    // Fecha de origen fija: 25/10/2026, 00:00 de Colombia (UTC-5).
-    // Los identificadores de grupo son permanentes; nunca se ordenan por luminosidad.
-    const ORIGEN_FRANJA = Math.floor(Date.UTC(2026, 9, 25, 5) / MS_MEDIA_HORA);
+    // Únicamente la selección inicial cambia: minuto de Colombia obtenido
+    // por internet dividido entre la cantidad de grupos. El ciclo posterior
+    // dura 30 minutos desde el ingreso, sin usar el reloj del dispositivo.
+    const ORIGEN_FRANJA = Math.floor(Date.UTC(2026, 9, 25, 5) / MS_MEDIA_HORA); // Referencia histórica para pruebas.
     const moduloPositivo = (valor, n) => ((valor % n) + n) % n;
-    function franjaDesdeOrigen(fecha = new Date()) {
-      return Math.floor(fecha.getTime() / MS_MEDIA_HORA) - ORIGEN_FRANJA;
+    const TRANSICION = {
+      iniciado: false, minuto: null, fuente: '', entrada: performance.now(),
+      franja() { return this.iniciado ? Math.floor(Math.max(0, performance.now() - this.entrada) / MS_MEDIA_HORA) : null; },
+      restante() { return MS_MEDIA_HORA - (Math.max(0, performance.now() - this.entrada) % MS_MEDIA_HORA); }
+    };
+    window.RECURSOS_TRANSICION = TRANSICION;
+    function franjaDesdeOrigen() { return TRANSICION.franja() ?? 0; }
+    function indiceTemaColombia() {
+      const minuto = TRANSICION.iniciado ? TRANSICION.minuto : 0;
+      return moduloPositivo(Math.floor(minuto * PALETAS.length / 60) + franjaDesdeOrigen(), PALETAS.length);
     }
-    function indiceTemaColombia(fecha = new Date()) {
-      return moduloPositivo(franjaDesdeOrigen(fecha), PALETAS.length);
+    async function solicitarHora(url, opciones, espera) {
+      // Un navegador antiguo o una red lenta tampoco pueden dejar la consulta pendiente.
+      const control = typeof AbortController === 'function' ? new AbortController() : null;
+      let limite;
+      try {
+        return await Promise.race([
+          fetch(url, { ...opciones, ...(control ? {signal: control.signal} : {}) }),
+          new Promise((_, rechazar) => {
+            limite = setTimeout(() => { control?.abort(); rechazar(new Error('Tiempo de espera')); }, espera);
+          })
+        ]);
+      } finally { clearTimeout(limite); }
+    }
+    async function horaDeInternet() {
+      // Prioridad: fecha HTTP del mismo sitio (sin servidores adicionales).
+      // Se evita el caché para impedir usar una fecha HTTP antigua.
+      if (location.protocol === 'https:' || location.protocol === 'http:') {
+        try {
+          const direccion = new URL(location.pathname || '/', location.origin);
+          direccion.searchParams.set('_hora_recursos', String(Math.floor(performance.now())));
+          const respuesta = await solicitarHora(direccion, {method:'HEAD', cache:'no-store'}, 2300);
+          const sello = Date.parse(respuesta.headers.get('Date') || '');
+          if (respuesta.ok && Number.isFinite(sello)) return { sello, fuente: 'HTTP' };
+        } catch (_) { /* Respaldo alternativo, sin interrumpir la página. */ }
+      }
+      // Respaldo para apertura local y servidores que no devuelvan Date.
+      try {
+        const respuesta = await solicitarHora('https://timeapi.io/api/Time/current/zone?timeZone=America/Bogota',
+          { cache: 'no-store' }, 2800);
+        if (!respuesta.ok) return null;
+        const dato = await respuesta.json();
+        if (![dato.year, dato.month, dato.day, dato.hour, dato.minute].every(Number.isInteger)) return null;
+        const sello = Date.UTC(dato.year, dato.month - 1, dato.day, dato.hour + 5, dato.minute,
+          Number(dato.seconds) || 0, Number(dato.milliSeconds) || 0);
+        return { sello, fuente: 'Colombia' };
+      } catch (_) { return null; }
+    }
+    async function iniciarTransicion() {
+      if (TRANSICION.iniciado) return;
+      const hora = await horaDeInternet();
+      if (!hora) {
+        // Reintentar discretamente. El fondo, logo y buscador siguen activos.
+        setTimeout(() => { void iniciarTransicion(); }, 30000);
+        return;
+      }
+      // Los servidores pueden redondear el sello al segundo; no restar latencia
+      // evita retroceder equivocadamente al minuto anterior al entrar.
+      TRANSICION.minuto = new Date(hora.sello).getUTCMinutes();
+      TRANSICION.fuente = hora.fuente;
+      TRANSICION.iniciado = true;
+      const anterior = indicePaleta;
+      actualizarTema();
+      // Asegurar la carga fotográfica incluso cuando el primer grupo sea el 01.
+      if (indicePaleta === anterior) window.dispatchEvent(new CustomEvent('recursos:cambio-paleta',
+        { detail: { franja: 0, indice: indicePaleta } }));
     }
     function aplicarPaleta(p) {
       const clara = p.modo === 'claro';
@@ -539,8 +601,8 @@
       if (metaThemeColor) metaThemeColor.content = p.fondo;
       if (metaColorScheme) metaColorScheme.content = clara ? 'light' : 'dark';
     }
-    // El horario se comprueba al inicio, al recuperar la pestaña y al llegar
-    // a la siguiente media hora colombiana. No se usa una animación de cortina.
+    // La primera paleta funciona como respaldo inmediato; la referencia de
+    // internet se obtiene sin bloquear el buscador y activa la rotación real.
     let indicePaleta = -1;
     let temporizadorTema = 0;
     function actualizarTema() {
@@ -548,15 +610,16 @@
       if (siguiente !== indicePaleta) {
         indicePaleta = siguiente;
         aplicarPaleta(PALETAS[indicePaleta]);
-        window.dispatchEvent(new CustomEvent('recursos:cambio-paleta', {
+        if (TRANSICION.iniciado) window.dispatchEvent(new CustomEvent('recursos:cambio-paleta', {
           detail: {franja: franjaDesdeOrigen(), indice: indicePaleta}
         }));
       }
       clearTimeout(temporizadorTema);
-      const transcurrido = ((Date.now() - MS_COLOMBIA) % MS_MEDIA_HORA + MS_MEDIA_HORA) % MS_MEDIA_HORA;
-      temporizadorTema = setTimeout(actualizarTema, Math.max(1000, MS_MEDIA_HORA-transcurrido+80));
+      if (TRANSICION.iniciado) temporizadorTema = setTimeout(actualizarTema,
+        Math.max(1000, TRANSICION.restante() + 80));
     }
     actualizarTema();
+    void iniciarTransicion();
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) clearTimeout(temporizadorTema);
       else actualizarTema();
@@ -1163,17 +1226,17 @@
     return ids;
   }
   function franjaActual(){
-    const fn=window.__pruebaPaletas?.franjaParaFecha;
-    return typeof fn==='function'?fn(new Date()):Math.floor((Date.now()-Date.UTC(2026,9,25,5))/1800000);
+    return window.RECURSOS_TRANSICION?.franja() ?? null;
   }
   function modulo(valor,n){return ((valor%n)+n)%n;}
-  // En P*N franjas cada fotografía aparece con cada uno de los P grupos.
-  // No cambia los identificadores ni reordena los grupos cromáticos.
+  // Selección inicial independiente según el minuto verificado en internet.
+  // Cada grupo y fotografía avanza un paso después de 30 minutos de visita.
   function seleccionParaFranja(t,n){
-    if(!Number.isSafeInteger(t)||!Number.isSafeInteger(n)||n<1)return null;
-    const totalPaletas=Math.max(1, Number(window.__pruebaPaletas?.total) || PALETAS.length || 1);
-    const paleta=modulo(t,totalPaletas);
-    const imagen=1+modulo(paleta+Math.floor(t/totalPaletas),n);
+    const estado=window.RECURSOS_TRANSICION;
+    if(!estado?.iniciado||!Number.isSafeInteger(t)||!Number.isSafeInteger(n)||n<1)return null;
+    const totalPaletas=Math.max(1,Number(window.__pruebaPaletas?.total)||1);
+    const paleta=modulo(Math.floor(estado.minuto*totalPaletas/60)+t,totalPaletas);
+    const imagen=1+modulo(Math.floor(estado.minuto*n/60)+t,n);
     return {imagen,paleta,franja:t};
   }
   function ordenarPorResolucion(lista){
@@ -1301,6 +1364,7 @@
   async function sincronizar(consultar=false){
     const id=++revisionListado;
     const f=franjaActual();
+    if(f===null)return;
     if(consultar||!iniciada){
       const lista=anticipo?.franja===f && anticipo.grupos ? anticipo.grupos : await obtenerListado();
       if(id!==revisionListado)return;
@@ -1324,10 +1388,10 @@
   // Esto se ejecuta fuera de la navegación y evita trabajo intenso en el cambio horario.
   function programarAnticipo(){
     clearTimeout(temporizadorAnticipo);
-    const origen=Date.UTC(2026,9,25,5);
-    const transcurrido=((Date.now()-origen)%1800000+1800000)%1800000;
-    const faltan=1800000-transcurrido;
-    temporizadorAnticipo=setTimeout(()=>{void prepararSiguiente();},Math.max(1000,faltan-45000));
+    const estado=window.RECURSOS_TRANSICION;
+    if(!estado?.iniciado)return;
+    temporizadorAnticipo=setTimeout(()=>{void prepararSiguiente();},
+      Math.max(1000,estado.restante()-45000));
   }
   async function prepararSiguiente(){
     if(document.hidden)return;
@@ -1336,6 +1400,7 @@
       return;
     }
     const id=++revisionAnticipo, f=franjaActual();
+    if(f===null)return;
     const siguiente=f+1;
     const lista=await obtenerListado();
     if(id!==revisionAnticipo||franjaActual()!==f)return;
