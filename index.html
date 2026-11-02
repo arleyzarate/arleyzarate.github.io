@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#312F30">
-  <meta name="recursos-version" content="2026.11.01.25">
+  <meta name="recursos-version" content="2026.11.01.26">
   <meta name="description" content="Recursos | Arley Zarate. Herramientas y archivos con búsqueda en tiempo real.">
   <title>Recursos | Arley Zarate</title>
   <!-- La interfaz esencial es visible desde el primer renderizado. -->
@@ -324,8 +324,10 @@
     /* Ocultar la firma de destino únicamente mientras vuela la escena temporal.
        Sin animación o con movimiento reducido, permanece visible desde el inicio. */
     html.intro-ocultar-firma #firma {visibility:hidden;opacity:0;}
-    /* Fotografía al 10 % sobre el color sólido original, con acabado mate estático. */
-    .fondo-foto {filter:saturate(.74) contrast(.95);}
+    /* Composición: fondo sólido opaco debajo; fotografía opaca encima.
+       Acabado mate únicamente sobre la fotografía: conserva color y detalle,
+       suaviza el contraste sin velos semitransparentes ni efectos animados. */
+    .fondo-foto {filter:saturate(.87) contrast(.94) brightness(.97);}
     /* Firma SVG monocolor: matiz suave sin alterar el color de cada paleta. */
     .titulo-firma { aspect-ratio:1435/258; overflow:visible; }
     .marca-lineal {
@@ -1510,7 +1512,7 @@
   const CAPAS=[document.getElementById('fondo-imagen-a'),document.getElementById('fondo-imagen-b')];
   if(CAPAS.some(c=>!c))return;
   const FOTOS=CAPAS.map(c=>c.querySelector('.fondo-foto'));
-  const OPACIDAD_FOTOGRAFIA=0.10; // La paleta sólida sigue siendo el respaldo.
+  const OPACIDAD_FOTOGRAFIA=1; // Foto opaca; fondo sólido solo como respaldo de carga.
   const RAIZ='./img/';
   const API='https://api.github.com/repos/arleyzarate/arleyzarate.github.io/contents/img?per_page=100';
   const EXT=/\.(webp|avif|png|jpe?g)$/i;
