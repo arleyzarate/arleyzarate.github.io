@@ -1,0 +1,1875 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#312F30">
+  <meta name="recursos-version" content="2026.11.01.26">
+  <meta name="description" content="Recursos | Arley Zarate. Herramientas y archivos con búsqueda en tiempo real.">
+  <title>Recursos | Arley Zarate</title>
+  <!-- La interfaz esencial es visible desde el primer renderizado. -->
+  <style>
+    :root {
+      color-scheme: dark;
+      --fondo: #312F30;
+      --fondo-alt: #1d1f22;
+      --panel: rgba(25, 29, 34, .90);
+      --panel-solido: #171b20;
+      --panel-secundario: rgba(255,255,255,.045);
+      --texto: #f3efe7;
+      --texto-suave: #d8d2c6;
+      --texto-apagado: #a8b2ba;
+      --texto-contraste: #111417;
+      --borde: rgba(255,255,255,.12);
+      --borde-fuerte: rgba(235, 91, 56, .40);
+      --acento: #eb5b38;
+      --acento-2: #347ccb;
+      --acento-3: #e6e4dc;
+      --boton: rgba(235, 91, 56, .18);
+      --boton-hover: rgba(235, 91, 56, .32);
+      /* Acción independiente, distinta del fondo del buscador. */
+      --accion-fondo: #7477FF;
+      --accion-texto: #111417;
+      --exito: #8ff3c0;
+      --error: #ffb4a7;
+      --info: #d2d9df;
+      --lluvia: rgba(230, 228, 220, .58);
+      --lluvia-brillo: #fff6ef;
+      --lluvia-sombra: rgba(235, 91, 56, .24);
+      --marca: #ffffff;
+      --seleccion: rgba(255,255,255,.08);
+      --resaltado: #fff0cf;
+      --fuente-ui: "Bahnschrift Condensed", "Bahnschrift SemiCondensed", "Arial Narrow", "Roboto Condensed", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+      --fuente-mono: Consolas, "Cascadia Code", monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      background: var(--fondo);
+      /* Cambio atómico: evita letras oscuras sobre fondos aún oscuros. */
+      transition: none;
+      color: var(--texto);
+      font-family: var(--fuente-ui);
+      overflow-x: hidden;
+      position: relative;
+    }
+    /* Capa fotográfica no esencial: nunca cubre ni bloquea el buscador.
+       La foto se dimensiona una vez como cover y se desplaza solo por transform. */
+    .fondo-imagen {
+      position: fixed; inset: 0; z-index: 0; overflow: hidden;
+      pointer-events: none; opacity: 0; visibility: hidden;
+      transition: opacity .85s ease;
+    }
+    .fondo-foto {
+      position: absolute; top: 0; left: 0; display: block;
+      background-position: center; background-size: 100% 100%;
+      background-repeat: no-repeat; will-change: auto;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .fondo-imagen { transition: none; }
+    }
+    .pagina {
+      min-height: 100svh; position: relative; z-index: 2;
+      padding: clamp(18px, 3vw, 45px);
+      display: grid; grid-template-rows: auto 1fr auto;
+    }
+    .cabecera, .pie { font-size: 11px; font-weight: 700; letter-spacing: .19em; color: var(--texto-suave); }
+    .cabecera { display: flex; align-items: center; gap: 10px; }
+    .logotipo {
+      display: grid; place-items: center; width: 29px; height: 29px;
+      border: 1px solid var(--borde-fuerte); border-radius: 9px; color: var(--marca);
+      background: color-mix(in srgb, var(--panel-solido) 86%, var(--acento) 14%); font-size: 14px;
+    }
+    .centro { width: min(690px, 100%); justify-self: center; align-self: center; transform: translateY(-8%); }
+    h1 {
+      margin: 0 0 48px; text-align: center;
+      font-size: clamp(48px, 8vw, 88px); line-height: 1.05;
+      font-weight: 700; letter-spacing: -.062em;
+      text-shadow: 0 9px 38px rgba(0,0,0,.36);
+    }
+    .comandos {
+      position: relative; display: flex; align-items: center; gap: 12px;
+      min-height: 79px; padding: 8px 12px;
+      border: 1px solid var(--borde-fuerte); border-radius: 18px;
+      background: var(--panel);
+      box-shadow: 0 20px 64px rgba(0,0,0,.28), inset 0 1px rgba(255,255,255,.06), 0 0 0 1px color-mix(in srgb, var(--acento) 12%, transparent);
+      backdrop-filter: blur(13px);
+    }
+    .etiqueta {
+      position: absolute; left: 22px; top: -13px;
+      padding: 5px 11px; background: color-mix(in srgb, var(--panel-solido) 85%, var(--acento) 15%);
+      border: 1px solid var(--borde-fuerte); border-radius: 7px;
+      color: var(--marca); box-shadow: 0 7px 18px rgba(0,0,0,.4);
+      font: 700 11px/1.2 var(--fuente-mono); letter-spacing: .07em;
+      animation: flotar 3.8s ease-in-out infinite;
+    }
+    @keyframes flotar { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+    .simbolo { padding-left: 13px; font: 800 25px var(--fuente-mono); color: var(--acento-lectura); }
+    #comando {
+      min-width: 0; flex: 1; padding: 12px 3px; background: transparent;
+      outline: none; border: none; color: var(--texto); caret-color: var(--acento);
+      font: 700 clamp(16px, 2vw, 19px)/1.1 var(--fuente-ui); letter-spacing: .02em; text-transform: none;
+    }
+    #comando::placeholder { color: var(--texto-apagado); opacity: 1; }
+    .abrir {
+      flex: 0 0 auto; width: 48px; height: 48px;
+      border-radius: 11px; border: 1px solid var(--borde-fuerte);
+      background: var(--boton); color: var(--marca);
+      font-size: 21px; cursor: pointer; transition: background .2s ease;
+    }
+    .abrir:hover, .abrir:focus-visible { background: var(--boton-hover); outline: 2px solid color-mix(in srgb, var(--acento) 58%, transparent); }
+    .estado {
+      min-height: 28px; padding-top: 12px; text-align: center;
+      font: 700 13px/1.35 var(--fuente-ui); text-transform: none; letter-spacing: .025em;
+      color: transparent;
+      text-shadow: 0 2px 15px rgba(0,0,0,.6);
+    }
+    .estado.correcto { color: var(--exito); }
+    .estado.error { color: var(--error); }
+    .pie { font-size: 10px; text-align: left; letter-spacing: .08em; font-weight: 600; }
+    @media (max-width: 560px) {
+      .pagina { padding: 20px 15px; }
+      .centro { transform: translateY(-5%); }
+      h1 { margin-bottom: 42px; }
+      .comandos { min-height: 67px; padding: 7px; gap: 6px; }
+      .etiqueta { left: 15px; }
+      .simbolo { padding-left: 9px; }
+      .abrir { width: 43px; height: 43px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .etiqueta { animation: none; }
+      body { transition: none; }
+    }
+  
+    /* La interfaz deja solamente el nombre, el comando y los resultados. */
+    .pagina { display: flex; align-items: center; justify-content: center; }
+    .centro { width: min(720px,100%); align-self: auto; justify-self: auto; transform: translateY(-7%); position:relative; isolation:isolate; }
+    /* Velo monocromático local para diferenciar la firma de las columnas traseras. */
+    .centro::before {
+      content:""; position:absolute; inset:-45px 0; z-index:-1; pointer-events:none;
+      background: radial-gradient(ellipse at center, var(--fondo) 17%, transparent 76%);
+    }
+    .comandos { z-index: 3; }
+    .etiqueta { display: none; }
+    #comando { position: relative; z-index: 1; }
+    .indicacion {
+      position: absolute; pointer-events: none; user-select: none;
+      left: 64px; right: 69px; top: 50%; transform: translateY(-50%);
+      font: 700 clamp(16px, 2vw, 19px)/1.1 var(--fuente-ui);
+      color: var(--texto-apagado); text-transform: none; letter-spacing: .02em; white-space: nowrap; overflow: hidden;
+    }
+    .cursor-parpadeo { color: var(--acento-lectura); font-family: var(--fuente-mono); font-weight: 700; animation: parpadear 1s steps(1) infinite; }
+    @keyframes parpadear { 0%, 49% { opacity: 1; } 50%,100% { opacity: 0; } }
+    .indicacion.oculta { display: none; }
+    .etiqueta-oculta { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .panel-resultados { position: relative; z-index: 2; }
+    .resultados {
+      position: absolute; top: 8px; left: 0; right: 0;
+      max-height: min(330px, 44vh); overflow-y: auto;
+      background: color-mix(in srgb, var(--panel-solido) 92%, transparent); border: 1px solid var(--borde-fuerte);
+      border-radius: 15px; padding: 7px;
+      box-shadow: 0 16px 54px rgba(0,0,0,.53); backdrop-filter: blur(18px);
+      scrollbar-color: color-mix(in srgb, var(--acento) 50%, #3f4b52) transparent;
+    }
+    .resultados[hidden], .modal[hidden] { display: none !important; }
+    .resultado {
+      width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      color: var(--texto); background: transparent; border: none; border-radius: 9px;
+      cursor: pointer; font: 700 14px/1.28 var(--fuente-ui); text-transform: none; letter-spacing: .015em;
+      text-align: left; padding: 10px 12px;
+    }
+    .resultado:hover, .resultado.activo { background: var(--seleccion); }
+    .resultado .archivo { min-width: 0; overflow: hidden; overflow-wrap: anywhere; }
+    .resultado .nombre { display: block; }
+    .resultado .ubicacion { display: block; margin-top: 4px; color: var(--texto-apagado); font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: none; }
+    .resultado mark { color: var(--texto-contraste); background: color-mix(in srgb, var(--resaltado) 84%, white 16%); border-radius: 3px; padding: 0 2px; }
+    .resultado .accion { color: var(--acento-lectura); font-size: 12px; font-weight: 800; white-space: nowrap; }
+    .estado { min-height: 31px; }
+    .estado.info { color: var(--info); }
+    .modal { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: 18px; background: rgba(0,0,0,.58); backdrop-filter: blur(8px); }
+    .cuadro-modal { width: min(460px,100%); padding: 27px; border-radius: 19px; border: 1px solid var(--borde-fuerte); background: var(--panel-solido); box-shadow: 0 18px 70px rgba(0,0,0,.35); }
+    .cuadro-modal h2 { margin: 0 0 12px; font-size: 21px; line-height: 1.15; font-weight: 800; font-family: var(--fuente-ui); text-transform: none; letter-spacing: .015em; }
+    .cuadro-modal p { line-height: 1.5; font-size: 15px; overflow-wrap: anywhere; color: var(--texto-suave); }
+    .botones-modal { display: flex; gap: 11px; justify-content: flex-end; margin-top: 25px; }
+    .botones-modal button { padding: 11px 17px; border-radius: 9px; border: 1px solid var(--borde); font: 800 14px var(--fuente-ui); color: var(--texto); background: color-mix(in srgb, var(--panel-solido) 86%, var(--acento-2) 14%); cursor: pointer; text-transform: none; letter-spacing: .015em; }
+    .botones-modal .confirmar { background: var(--acento); color: var(--texto-contraste); border-color: color-mix(in srgb, var(--acento) 70%, black 30%); }
+    .botones-modal button:focus-visible, .resultado:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+    @media (max-width:560px) {
+      .centro { transform: translateY(-6%); }
+      .indicacion { left: 49px; right: 55px; }
+      .resultado { padding: 10px 8px; font-size: 13px; }
+    }
+    @media (prefers-reduced-motion: reduce) { .cursor-parpadeo { animation: none; } }
+    /* La barra es esencial: nunca se oculta esperando una animación de entrada. */
+    .comandos { overflow: hidden; animation: none; }
+    .comandos::after { display: none; }
+    .comandos > * { z-index: 1; }
+
+    .resultado .nombre, .estado, .cuadro-modal h2, .botones-modal button, .indicacion, #comando { font-family: var(--fuente-ui); }
+    .resultado .nombre { font-weight: 800; }
+    .indicacion { font-stretch: condensed; font-weight: 800; }
+    .comandos:focus-within { border-color: var(--acento); }
+    .tema-claro .resultado .accion, .tema-claro .simbolo { text-shadow: none; }
+    .tema-claro .cuadro-modal, .tema-claro .resultados, .tema-claro .comandos {
+      box-shadow: 0 20px 58px rgba(27, 32, 41, .12), inset 0 1px rgba(255,255,255,.32);
+    }
+    .tema-claro #comando, .tema-claro .estado, .tema-claro .resultado, .tema-claro .cuadro-modal h2 { text-shadow: none; }
+    @media (max-width: 600px) {
+      .comandos, .resultados { backdrop-filter: none; }
+      .resultados { box-shadow: 0 14px 32px rgba(0,0,0,.20); }
+    }
+
+
+    /* Portal sobrio: sin letras verticales. Firma Fourier independiente del buscador. */
+    .pagina { display: block; position: static; z-index: auto; padding: 0; min-height: 100svh; }
+    .titulo-firma {
+      position: fixed; right: calc(clamp(12px, 2.3vw, 30px) + var(--firma-vista-derecha, 0px));
+      left: auto; top: calc(clamp(12px, 1.6vw, 24px) + var(--firma-vista-superior, 0px));
+      z-index: 2; width: min(360px, calc(50vw - 16px));
+      height: auto; margin: 0; pointer-events: none; overflow: visible;
+    }
+    /* Escritorio: barra en el tercer cuarto de la altura. Móvil: al borde inferior. */
+    .centro {
+      position: fixed; z-index: 5; left: 50%; top: var(--buscador-y, 75dvh);
+      transform: translate(-50%, -50%) !important;
+      transition: top .32s cubic-bezier(.2,.75,.2,1);
+      width: min(720px, calc(100vw - 32px));
+      margin: 0; isolation: initial; align-self: auto;
+    }
+    .centro::before { display: none; }
+    .comandos { overflow: hidden; }
+    /* Las sugerencias se despliegan hacia arriba y nunca detrás del teclado. */
+    .panel-resultados {
+      position: absolute; bottom: calc(100% + 10px); top: auto;
+      left: 0; right: 0; z-index: 6;
+    }
+    .resultados {
+      position: relative; top: auto; left: auto; right: auto;
+      max-height: var(--resultados-alto, min(330px, 40dvh));
+      overflow-y: auto; overscroll-behavior: contain;
+      box-shadow: 0 -16px 40px rgba(0,0,0,.22);
+    }
+    .estado { pointer-events: none; }
+    .indicacion { overflow: hidden; text-overflow: clip; }
+    @media (max-width: 700px) {
+      .centro { top: var(--buscador-y, calc(100dvh - 64px)); }
+       .titulo-firma { width: min(360px, calc(50vw - 18px)); }
+      .comandos { min-height: 62px; }
+      #comando { font-size: 16px; }
+      .indicacion { font-size: clamp(14px, 4vw, 18px); }
+      .resultados { max-height: var(--resultados-alto, min(46dvh, 340px)); }
+      .estado { min-height: 20px; padding-top: 6px; font-size: 11px; }
+    }
+
+    /* El buscador mantiene la pista de texto o muestra un alcance real por carpeta. */
+    .alcance-actual { display:flex; align-items:center; flex:0 1 auto; gap:8px;
+      min-width:0; white-space:nowrap; color:var(--texto-apagado);
+      font:800 clamp(12px,1.6vw,16px)/1.1 var(--fuente-ui); text-transform:none; }
+    .alcance-actual[hidden] { display:none !important; }
+    .carpeta-etiqueta { display:inline-flex; align-items:center; gap:6px; min-width:0; max-width:210px;
+      color:var(--acento-lectura); background:color-mix(in srgb,var(--acento) 12%,transparent);
+      border:1px solid var(--borde-fuerte); border-radius:9px;
+      padding:7px 8px; font:inherit; font-weight:800; cursor:pointer; }
+    .carpeta-etiqueta:focus-visible { outline:2px solid var(--acento); outline-offset:2px; }
+    #nombre-carpeta { display:block; max-width:175px; overflow:hidden; text-overflow:ellipsis; }
+    .carpeta-etiqueta .quitar { font-size:18px; line-height:1; }
+    .comandos.con-alcance #comando { flex:1 1 50px; min-width:34px; }
+    .resultado.tipo-carpeta { border-left:2px solid var(--borde-fuerte); }
+    .resultado.tipo-carpeta .accion { white-space:nowrap; }
+    @media (max-width:600px) {
+      .alcance-actual { gap:5px; font-size:12px; }
+      .carpeta-etiqueta { padding:6px; max-width:120px; }
+      #nombre-carpeta { max-width:89px; }
+      .comandos.con-alcance { gap:5px; }
+      .comandos.con-alcance .simbolo { padding-left:5px; }
+      .comandos.con-alcance #comando { padding-inline:0; font-size:14px; }
+    }
+    @media (max-width:360px) {
+      .comandos.con-alcance { gap:3px; padding-inline:5px; }
+      .comandos.con-alcance .simbolo { padding-left:2px; font-size:21px; }
+      .comandos.con-alcance .abrir { width:38px; height:41px; }
+      .alcance-actual { gap:3px; font-size:11px; }
+      .carpeta-etiqueta { gap:3px; max-width:117px; padding:5px; }
+      #nombre-carpeta { max-width:94px; }
+      .comandos.con-alcance #comando { min-width:23px; flex-basis:25px; font-size:13px; }
+    }
+    @media (prefers-reduced-motion:reduce) { .centro { transition:none !important; } }
+
+
+    /* Superficies mate: los 21 códigos cromáticos originales permanecen intactos.
+       Iluminación ambiental y grano estáticos, sin filtros animados de pantalla. */
+    body::before {
+      content:""; position:fixed; inset:0; z-index:1; pointer-events:none;
+      background:linear-gradient(142deg,rgba(255,248,237,.085) 0%,rgba(132,128,129,.038) 44%,rgba(18,20,24,.125) 100%);
+    }
+    body::after {
+      content:""; position:fixed; inset:0; z-index:1; pointer-events:none;opacity:.11;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cg fill='%23000000' opacity='.22'%3E%3Ccircle cx='4' cy='7' r='.7'/%3E%3Ccircle cx='32' cy='3' r='.6'/%3E%3Ccircle cx='53' cy='13' r='.8'/%3E%3Ccircle cx='14' cy='26' r='.65'/%3E%3Ccircle cx='44' cy='33' r='.75'/%3E%3Ccircle cx='9' cy='49' r='.8'/%3E%3Ccircle cx='29' cy='56' r='.6'/%3E%3Ccircle cx='58' cy='54' r='.7'/%3E%3C/g%3E%3Cg fill='%23ffffff' opacity='.26'%3E%3Ccircle cx='22' cy='11' r='.7'/%3E%3Ccircle cx='46' cy='24' r='.6'/%3E%3Ccircle cx='3' cy='38' r='.65'/%3E%3Ccircle cx='61' cy='43' r='.6'/%3E%3Ccircle cx='38' cy='60' r='.7'/%3E%3C/g%3E%3C/svg%3E");
+    }
+    .comandos {
+      background:linear-gradient(156deg,
+        color-mix(in srgb,var(--panel-solido) 88%,#f3eee7 12%) 0%,
+        color-mix(in srgb,var(--panel-solido) 98%,#222 2%) 46%,
+        color-mix(in srgb,var(--panel-solido) 89%,#0d0e11 11%) 100%);
+      box-shadow:0 13px 36px rgba(0,0,0,.20),inset 0 1px rgba(255,255,255,.17),inset 0 -2px 5px rgba(0,0,0,.07);
+    }
+    .resultados,.vista-previa {
+      background:linear-gradient(166deg,
+        color-mix(in srgb,var(--panel-solido) 90%,#f1eae2 10%) 0%,
+        color-mix(in srgb,var(--panel-solido) 98%,#000 2%) 60%,
+        color-mix(in srgb,var(--panel-solido) 91%,#16191c 9%) 100%);
+      box-shadow:0 15px 40px rgba(0,0,0,.22),inset 0 1px rgba(255,255,255,.16),inset 0 -2px rgba(0,0,0,.045);
+    }
+    /* Ocultar la firma de destino únicamente mientras vuela la escena temporal.
+       Sin animación o con movimiento reducido, permanece visible desde el inicio. */
+    html.intro-ocultar-firma #firma {visibility:hidden;opacity:0;}
+    /* Composición: fondo sólido opaco debajo; fotografía opaca encima.
+       Acabado mate únicamente sobre la fotografía: conserva color y detalle,
+       suaviza el contraste sin velos semitransparentes ni efectos animados. */
+    .fondo-foto {filter:saturate(.87) contrast(.94) brightness(.97);}
+    /* Firma SVG monocolor: matiz suave sin alterar el color de cada paleta. */
+    .titulo-firma { aspect-ratio:1435/258; overflow:visible; }
+    .marca-lineal {
+      display:block;width:100%;height:100%;overflow:visible;
+      color:color-mix(in srgb,var(--borde-fuerte) 86%,var(--texto-suave) 14%);
+      filter:saturate(.78) contrast(.95) drop-shadow(0 1px 1px rgba(0,0,0,.11));
+      /* La marca auténtica permanece visible desde la primera pintura. */
+      animation:none;
+    }
+    /* Lista y vista previa encima del buscador, con desplazamiento independiente. */
+    .resultados {max-height:var(--resultados-alto,60dvh);scrollbar-gutter:stable;
+      transform-origin:bottom center;animation:panel-resorte .47s cubic-bezier(.21,.8,.22,1) both;}
+    .vista-previa {
+      display:flex;flex-direction:column;gap:12px;
+      max-height:var(--resultados-alto,60dvh);overflow-y:auto;overscroll-behavior:contain;
+      padding:clamp(15px,3vw,24px);border:1px solid var(--borde-fuerte);
+      border-radius:16px;scrollbar-color:var(--borde-fuerte) transparent;
+      animation:panel-resorte .52s cubic-bezier(.21,.8,.22,1) both;
+    }
+    .vista-previa[hidden] {display:none!important;}
+    .vista-descripcion {margin:0;color:var(--texto-suave);font:500 clamp(13px,1.6vw,16px)/1.6 var(--fuente-ui);white-space:pre-line;overflow-wrap:anywhere;}
+    /* La lectura se desplaza, pero la única acción siempre queda a la vista.
+       El campo de búsqueda conserva el nombre; no lo repetimos en la tarjeta. */
+    .centro.con-vista .comandos .abrir {display:none!important;}
+    .vista-ir {
+      flex:0 0 auto;align-self:flex-end;min-height:48px;min-width:128px;
+      margin-top:4px;padding:11px 21px;border:1px solid color-mix(in srgb,var(--accion-fondo) 75%,black 25%);
+      border-radius:13px;
+      background:linear-gradient(158deg,
+        color-mix(in srgb,var(--accion-fondo) 88%,white 12%) 0%,
+        var(--accion-fondo) 64%,
+        color-mix(in srgb,var(--accion-fondo) 91%,black 9%) 100%);
+      box-shadow:0 8px 24px rgba(0,0,0,.19),inset 0 1px rgba(255,255,255,.20);
+      color:var(--accion-texto);font:800 16px var(--fuente-ui);
+      cursor:pointer;touch-action:manipulation;transform-origin:center;
+      transition:transform .24s cubic-bezier(.22,1.7,.40,1),filter .18s ease,box-shadow .18s ease;
+    }
+    .vista-ir[hidden] {display:none!important;}
+    .vista-ir:focus-visible {outline:3px solid var(--accion-fondo);outline-offset:4px;}
+    @media (hover:hover) {
+      .vista-ir:hover {filter:brightness(1.05);box-shadow:0 11px 26px rgba(0,0,0,.25),inset 0 1px rgba(255,255,255,.24);}
+    }
+    .vista-ir:active {animation:none!important;transform:scale(.94);filter:brightness(.96);}
+    /* Pulsación puntual al elegir un resultado, no continua. */
+    @keyframes llamar-accion {
+      0%,100% {transform:scale(1);}
+      32% {transform:scale(1.055);}
+      62% {transform:scale(.985);}
+      82% {transform:scale(1.016);}
+    }
+    .vista-ir.llamar-atencion {animation:llamar-accion .85s cubic-bezier(.2,.8,.3,1) 2;}
+    /* Distribuir la altura útil entre lectura y acción, no desplazar el botón. */
+    .panel-resultados:has(.vista-previa:not([hidden])) {max-height:var(--resultados-alto,60dvh);}
+    .panel-resultados:has(.vista-previa:not([hidden])) .vista-previa {flex:1 1 auto;max-height:none;}
+    .panel-resultados:has(.vista-previa:not([hidden])) .estado {flex-shrink:0;}
+    /* Entrada con identidad 0–1,32 s, después buscador y controles. Interacción disponible desde el primer instante. */
+    @keyframes marca-revelar {
+      from {opacity:.55;clip-path:inset(0 94% 0 0);transform:translateY(5px)}
+      to {opacity:1;clip-path:inset(0 0 0 0);transform:translateY(0)}
+    }
+    /* Inspiración de los movimientos breves del video: desplazamiento,
+       pequeño exceso de escala y asentamiento, sin saltar el diseño. */
+    @keyframes panel-resorte {
+      0% {opacity:.38;transform:translateY(22px) scale(.956);}
+      63% {opacity:1;transform:translateY(-3px) scale(1.008);}
+      84% {transform:translateY(1px) scale(.997);}
+      100% {opacity:1;transform:translateY(0) scale(1);}
+    }
+    @keyframes barra-entrada {
+      0%{opacity:.72;transform:translateY(10px) scale(.985)}
+      70%{opacity:1;transform:translateY(-2px) scale(1.008)}
+      100%{opacity:1;transform:translateY(0) scale(1)}
+    }
+    @keyframes barra-enfoque {
+      0%{transform:scale(1)}45%{transform:scale(1.008)}100%{transform:scale(1)}
+    }
+    @keyframes control-entrada {from{opacity:.65;translate:0 5px}to{opacity:1;translate:0 0}}
+    @keyframes resultado-entrada {from{opacity:.45;translate:0 12px;scale:.975}to{opacity:1;translate:0 0;scale:1}}
+    .comandos {animation:barra-entrada .67s .14s cubic-bezier(.18,.85,.3,1) both;}
+    .comandos:focus-within {animation:barra-enfoque .37s cubic-bezier(.2,.8,.3,1) both;}
+    .resultado {transition:background .16s ease,transform .21s cubic-bezier(.2,1.45,.28,1);}
+    .resultado:active {transform:scale(.982);}
+    .abrir {transition:background .2s ease,transform .22s cubic-bezier(.2,1.5,.3,1);}
+    .abrir:active {transform:scale(.92);}
+    .comandos .simbolo {animation:control-entrada .65s .32s both;}
+    .comandos .indicacion,.comandos #comando {animation:control-entrada .65s .44s both;}
+    .comandos .abrir {animation:control-entrada .65s .56s both;}
+    .resultado {animation:resultado-entrada .22s ease-out both;animation-delay:calc(min(var(--orden,0),8)*27ms);}
+    /* Entrada de dibujo técnico: una escena temporal que no recibe eventos,
+       forma el mismo SVG real y converge exactamente sobre el logotipo. */
+    .plano-entrada {
+      position:fixed;inset:0;z-index:4;pointer-events:none;overflow:hidden;
+      display:grid;place-items:center;opacity:0;visibility:hidden;
+      color:color-mix(in srgb,var(--borde-fuerte) 86%,var(--texto-suave) 14%);
+    }
+    .plano-entrada[hidden] {display:none!important;}
+    .plano-entrada.en-marcha {opacity:1;visibility:visible;}
+    .plano-superficie {
+      position:relative;width:min(91vw,860px);max-width:860px;
+      padding:clamp(17px,3vw,35px) clamp(18px,3vw,40px);
+      border:1px solid color-mix(in srgb,var(--borde-fuerte) 35%,transparent);
+      border-radius:16px;
+      background:
+        repeating-linear-gradient(0deg,transparent 0 23px,color-mix(in srgb,var(--borde-fuerte) 8%,transparent) 24px),
+        repeating-linear-gradient(90deg,transparent 0 23px,color-mix(in srgb,var(--borde-fuerte) 8%,transparent) 24px),
+        linear-gradient(145deg,color-mix(in srgb,var(--fondo) 91%,white 9%),var(--fondo));
+      box-shadow:0 17px 60px rgba(0,0,0,.16),inset 0 1px rgba(255,255,255,.18);
+      will-change:transform,opacity;
+    }
+    .plano-superficie::before,.plano-superficie::after {
+      content:"";position:absolute;left:12px;right:12px;height:1px;
+      background:color-mix(in srgb,var(--borde-fuerte) 55%,transparent);
+      opacity:.65;transform-origin:left;
+    }
+    .plano-superficie::before {top:15px;}
+    .plano-superficie::after {bottom:15px;}
+    .plano-marca {width:100%;height:auto;display:block;overflow:visible;
+      filter:drop-shadow(0 2px 1px rgba(0,0,0,.12));}
+    .plano-trazo {
+      fill:currentColor;stroke:currentColor;stroke-width:.6;
+      transform-origin:center;
+    }
+    .plano-ejes {position:absolute;inset:0;pointer-events:none;opacity:.62;}
+    .plano-ejes::before,.plano-ejes::after {content:"";position:absolute;
+      background:color-mix(in srgb,var(--borde-fuerte) 46%,transparent);}
+    .plano-ejes::before {left:50%;top:6%;bottom:6%;width:1px;}
+    .plano-ejes::after {top:50%;left:5%;right:5%;height:1px;}
+    .plano-cursor {position:absolute;top:12%;left:0;height:76%;width:2px;
+      background:var(--acento-lectura);box-shadow:0 0 9px var(--acento);
+      transform:scaleY(.2);opacity:0;}
+    @keyframes plano-aparecer {from{opacity:0;transform:scale(.98)}to{opacity:1;transform:scale(1)}}
+    @keyframes plano-dibujar {0%{clip-path:inset(0 100% 0 0);opacity:.4}
+      100%{clip-path:inset(0 0 0 0);opacity:1}}
+    @keyframes cursor-dibujar {0%{left:0;opacity:0;transform:scaleY(.5)}
+      9%{opacity:.85;transform:scaleY(1)}85%{opacity:.75}100%{left:100%;opacity:0;transform:scaleY(.45)}}
+    .plano-entrada.en-marcha .plano-superficie {animation:plano-aparecer .36s ease-out both;}
+    .plano-entrada.en-marcha .plano-marca {animation:plano-dibujar 1.18s .24s cubic-bezier(.35,.05,.5,1) both;}
+    .plano-entrada.en-marcha .plano-cursor {animation:cursor-dibujar 1.18s .24s ease-in-out both;}
+    @media (prefers-reduced-motion:reduce) { .plano-entrada {display:none!important;} }
+    @media (max-width:600px) {.vista-previa {backdrop-filter:none;gap:9px;}}
+    @media (prefers-reduced-motion:reduce) {
+      .vista-ir.llamar-atencion {animation:none!important;transform:none!important;}
+    }
+    @media (prefers-reduced-motion:reduce) {
+      .marca-lineal,.comandos,.comandos .simbolo,.comandos .indicacion,
+      .comandos #comando,.comandos .abrir,.resultados,.vista-previa,.resultado,
+      .vista-ir {
+        animation:none!important;transition:none!important;translate:none!important;
+        transform:none!important;scale:1!important;clip-path:none!important;
+      }
+    }
+
+    /* Mensajes visibles encima de la barra y del teclado, como se acordó. */
+    .panel-resultados {display:flex;flex-direction:column;gap:4px;max-height:var(--resultados-alto,60dvh);}
+    .panel-resultados .resultados,.panel-resultados .vista-previa {min-height:0;flex:0 1 auto;}
+    .panel-resultados .estado {flex:0 0 auto;min-height:0;padding:5px 8px;font-size:12px;color:var(--texto-suave);}
+    .panel-resultados .estado:empty {display:none;}
+</style>
+</head>
+<body>
+  <div id="fondo-imagen-a" class="fondo-imagen" aria-hidden="true"><div class="fondo-foto"></div></div>
+  <div id="fondo-imagen-b" class="fondo-imagen" aria-hidden="true"><div class="fondo-foto"></div></div>
+  <!-- Los catálogos auxiliares no bloquean la primera pintura de la interfaz. -->
+  <script src="archivos.js" async onload="window.dispatchEvent(new Event('recursos:config-cargada'))"></script>
+  <script src="extensiones.js" async onload="window.dispatchEvent(new Event('recursos:config-cargada'))"></script>
+  <!-- Logotipo vectorial: contornos trazados de la referencia aprobada por el autor.
+       Conserva el color dinámico del buscador, sin imágenes, fuentes ni descargas externas. -->
+  <h1 id="firma" class="titulo-firma" aria-label="Arley Zarate">
+    <svg class="marca-lineal" viewBox="-6 -8 1435 258" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+      <path id="marca-forma" fill="currentColor" fill-rule="evenodd" d="M1077 50 1077 69 1078 72 1083 77 1086 78 1153 78 1159 82 1160 86 1156 90 1099 101 1090 104 1075 112 1064 123 1060 130 1057 139 1057 155 1063 170 1073 180 1080 184 1097 188 1109 187 1119 184 1134 175 1158 153 1159 154 1159 185 1160 186 1188 186 1189 185 1189 138 1185 127 1180 122 1176 120 1162 119 1155 122 1124 148 1110 155 1099 156 1093 154 1087 147 1087 142 1089 138 1093 134 1102 129 1160 117 1175 111 1185 100 1188 91 1187 75 1181 64 1169 54 1154 49 1147 48 1082 48 Z M1064 48 1036 48 1021 51 1012 55 1004 61 995 72 989 90 989 185 990 186 1019 186 1020 185 1020 94 1023 87 1029 81 1036 78 1064 78 1065 77 1065 50 Z M530 48 529 49 529 120 532 133 541 150 550 160 569 171 577 173 592 174 603 172 614 167 616 172 616 176 615 177 615 187 611 196 605 202 599 205 587 207 586 206 579 206 578 207 566 207 565 206 523 207 523 239 594 239 611 235 622 229 632 220 640 208 645 194 646 188 646 49 645 48 620 48 619 49 616 48 616 117 614 125 611 131 604 138 595 142 582 142 578 141 570 136 563 128 560 120 560 49 557 48 Z M331 48 302 48 286 51 273 58 263 68 260 73 255 87 255 186 285 186 286 185 286 93 289 86 298 79 302 78 331 78 332 77 332 49 Z M1337 49 1321 55 1307 65 1297 77 1291 88 1286 107 1286 127 1290 144 1300 162 1312 174 1328 183 1337 186 1353 187 1354 188 1374 187 1389 183 1403 175 1414 163 1421 146 1422 133 1421 132 1419 134 1396 143 1379 153 1365 156 1350 156 1340 154 1327 146 1321 139 1321 137 1328 134 1390 119 1404 114 1415 105 1419 98 1421 91 1421 80 1419 73 1410 60 1403 55 1391 50 1381 48 1370 48 1369 47 1350 47 Z M1315 107 1316 101 1321 92 1331 83 1338 80 1346 78 1384 78 1390 80 1393 84 1393 87 1388 91 1359 97 1342 102 1338 102 1318 108 Z M433 50 414 59 403 69 397 77 392 87 388 103 389 121 391 121 405 102 414 93 425 85 436 80 444 78 482 78 485 79 490 85 484 91 421 107 412 110 405 114 397 122 393 130 392 145 395 154 403 166 410 173 422 181 432 185 441 187 456 188 457 187 470 187 487 182 499 175 506 169 514 159 521 143 524 125 523 123 519 123 507 127 492 130 488 139 480 148 469 154 459 156 448 156 436 153 429 149 422 142 421 138 434 133 490 118 504 112 511 106 517 96 518 92 517 75 511 64 505 58 499 54 489 50 479 48 467 48 466 47 450 47 Z M1201 2 1201 124 1204 141 1208 151 1218 166 1224 172 1236 180 1243 183 1256 186 1280 186 1280 153 1279 152 1256 152 1247 148 1236 136 1232 124 1232 79 1233 78 1280 78 1280 49 1279 48 1233 48 1232 47 1232 2 Z M681 3 682 22 688 31 696 34 811 34 812 35 811 39 759 76 695 128 688 141 687 157 691 168 701 179 711 184 719 186 844 186 845 185 845 158 846 157 854 172 867 183 879 187 898 187 906 185 922 176 947 153 948 154 948 185 949 186 977 186 978 185 978 139 974 127 967 121 960 119 948 120 912 149 895 156 884 155 876 147 876 143 878 138 889 130 927 121 950 117 964 111 973 102 977 92 977 79 972 67 961 56 947 50 936 48 887 48 875 52 864 62 860 69 857 78 857 84 881 84 889 78 941 78 945 79 948 82 949 86 945 90 897 99 880 104 869 109 862 114 852 125 848 133 845 152 728 152 726 151 724 148 725 146 753 121 791 91 840 57 845 52 850 43 852 36 851 23 847 15 841 9 834 5 822 2 682 2 Z M347 0 347 186 377 186 378 184 378 148 377 147 377 126 378 125 377 123 377 22 378 21 377 8 378 5 377 4 378 3 377 0 Z M230 30 216 15 201 6 184 1 166 0 153 2 140 6 122 16 112 24 93 44 57 90 28 134 0 184 2 186 42 186 80 118 102 85 123 58 135 46 148 38 162 34 180 34 187 36 196 41 205 53 207 62 207 101 205 103 117 103 107 107 100 115 97 123 96 135 97 136 206 136 207 137 207 186 239 186 240 185 240 60 238 48 Z"/>
+    </svg>
+  </h1>
+  <!-- Escena introductoria decorativa: no captura clics, no reemplaza la firma auténtica. -->
+  <div id="plano-entrada" class="plano-entrada" aria-hidden="true" hidden>
+    <div id="plano-superficie" class="plano-superficie">
+      <div class="plano-ejes"></div>
+      <svg class="plano-marca" viewBox="-6 -8 1435 258" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+        <use class="plano-trazo" href="#marca-forma"></use>
+      </svg>
+      <span class="plano-cursor"></span>
+    </div>
+  </div>
+  <div class="pagina">
+    <main class="centro">
+      <form class="comandos" id="formulario" autocomplete="off">
+        <label for="comando" class="etiqueta-oculta">Buscar en Recursos</label>
+        <span class="simbolo" aria-hidden="true">&gt;</span>
+        <span id="alcance-actual" class="alcance-actual" hidden>Buscar en
+          <button id="quitar-carpeta" class="carpeta-etiqueta" type="button" aria-label="Quitar filtro de carpeta" title="Volver a buscar en todo Recursos">
+            <span id="nombre-carpeta"></span><span class="quitar" aria-hidden="true">×</span>
+          </button>
+        </span>
+        <input type="text" id="comando" name="comando" role="combobox" aria-autocomplete="list"
+          aria-expanded="false" aria-controls="resultados" aria-describedby="estado" spellcheck="false" autocapitalize="off" autocomplete="off" inputmode="search" enterkeyhint="search">
+        <span id="indicacion" class="indicacion" aria-hidden="true">Buscar<span class="cursor-parpadeo">_</span></span>
+        <button class="abrir" type="submit" aria-label="Abrir resultado" title="Abrir resultado">↗</button>
+      </form>
+      <div class="panel-resultados">
+        <section id="vista-previa" class="vista-previa" aria-label="Información del resultado seleccionado" hidden>
+          <p id="vista-descripcion" class="vista-descripcion" aria-live="polite"></p>
+        </section>
+        <div id="resultados" class="resultados" role="listbox" aria-label="Archivos encontrados" hidden></div>
+        <div class="estado" id="estado" role="status" aria-live="polite" aria-atomic="true"></div>
+        <!-- Acción única, siempre visible sobre la barra, independiente del desplazamiento de Acerca de. -->
+        <button id="vista-ir" class="vista-ir" type="button" hidden>Ir ↗</button>
+      </div>
+    </main>
+  </div>
+  <div id="modal" class="modal" hidden>
+    <section class="cuadro-modal" role="dialog" aria-modal="true" aria-labelledby="titulo-modal" aria-describedby="nombre-descarga">
+      <h2 id="titulo-modal">¿Desea descargar este archivo?</h2>
+      <p id="nombre-descarga"></p>
+      <div class="botones-modal">
+        <button id="descargar-no" type="button">No</button>
+        <button id="descargar-si" type="button" class="confirmar">Sí, descargar</button>
+      </div>
+    </section>
+  </div>
+  <script>
+    'use strict';
+    // Los grupos cromáticos tienen IDs permanentes. Se seleccionan por el
+    // minuto de Colombia y avanzan cada 30 minutos desde el ingreso.
+    // Los grupos añadidos nunca alteran los originales.
+    const PALETAS = [
+      { nombre:'01 · Grafito fuerte', modo:'oscuro', fondo:'#312F30', panel:'#0E0F0B', acento:'#FFD85E', acentoTexto:'#FFD85E', secundario:'#7477FF', tinta:'#FFD85E', orbita:'#FFFFFF', eje:'#FFD85E', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#FFD85E' },
+      { nombre:'02 · Blanco técnico', modo:'claro', fondo:'#FFFFFF', panel:'#FFFFFF', acento:'#C34C3F', acentoTexto:'#A33C30', secundario:'#F66554', tinta:'#9D342D', orbita:'#312F30', eje:'#0E0F0B', referencia:'#312F30', lluvia:'#312F30', lluviaBrillo:'#0E0F0B' },
+      { nombre:'03 · Negro profundo', modo:'oscuro', fondo:'#0E0F0B', panel:'#312F30', acento:'#FE813C', acentoTexto:'#FEAD77', secundario:'#F9CD61', tinta:'#FFBA87', orbita:'#FFFFFF', eje:'#FEAD77', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#FE813C' },
+      { nombre:'04 · Salvia clara', modo:'claro', fondo:'#C5D4CA', panel:'#FFFFFF', acento:'#385B45', acentoTexto:'#30513C', secundario:'#727E6E', tinta:'#31553F', orbita:'#312F30', eje:'#0E0F0B', referencia:'#312F30', lluvia:'#312F30', lluviaBrillo:'#0E0F0B' },
+      { nombre:'05 · Carbón esencial', modo:'oscuro', fondo:'#303030', panel:'#0E0F0B', acento:'#F9CD61', acentoTexto:'#F9CD61', secundario:'#7477FF', tinta:'#FFD85E', orbita:'#FFFFFF', eje:'#F9CD61', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#F9CD61' },
+      { nombre:'06 · Marfil sobrio', modo:'claro', fondo:'#FBEDB9', panel:'#FFFFFF', acento:'#303030', acentoTexto:'#303030', secundario:'#F9CD61', tinta:'#303030', orbita:'#312F30', eje:'#0E0F0B', referencia:'#312F30', lluvia:'#312F30', lluviaBrillo:'#0E0F0B' },
+      { nombre:'07 · Grafito azulado', modo:'oscuro', fondo:'#272A2D', panel:'#0E0F0B', acento:'#347CCB', acentoTexto:'#B2D7FF', secundario:'#FE813C', tinta:'#B2D7FF', orbita:'#FFFFFF', eje:'#C3E0FF', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#B2D7FF' },
+      { nombre:'08 · Amarillo luminoso', modo:'claro', fondo:'#FFD85E', panel:'#FFFFFF', acento:'#303030', acentoTexto:'#303030', secundario:'#7477FF', tinta:'#312F30', orbita:'#312F30', eje:'#0E0F0B', referencia:'#312F30', lluvia:'#312F30', lluviaBrillo:'#0E0F0B' },
+      { nombre:'09 · Violeta profundo', modo:'oscuro', fondo:'#262535', panel:'#0E0F0B', acento:'#7477FF', acentoTexto:'#B5B7FF', secundario:'#F9CD61', tinta:'#B5B7FF', orbita:'#FFFFFF', eje:'#B5B7FF', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#7477FF' },
+      { nombre:'10 · Naranja aventura', modo:'claro', fondo:'#FE813C', panel:'#FFFFFF', acento:'#312F30', acentoTexto:'#312F30', secundario:'#727E6E', tinta:'#0E0F0B', orbita:'#0E0F0B', eje:'#0E0F0B', referencia:'#0E0F0B', lluvia:'#0E0F0B', lluviaBrillo:'#0E0F0B' },
+      { nombre:'11 · Acero carmín', modo:'oscuro', fondo:'#0A1A24', panel:'#1D4252', acento:'#B4894D', acentoTexto:'#E6D9CB', secundario:'#A01B24', tinta:'#DCE4E8', orbita:'#FFFFFF', eje:'#E6D9CB', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#B4894D', tonos:['#0A1A24','#1D4252','#91A4AE','#A01B24','#B4894D','#B39E92'] },
+      { nombre:'12 · Cian industrial', modo:'oscuro', fondo:'#2C8092', panel:'#3F606F', acento:'#00D6D1', acentoTexto:'#D8FBFC', secundario:'#9F6360', tinta:'#D8FBFC', orbita:'#FFFFFF', eje:'#C7FFFF', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#00D6D1', tonos:['#3F606F','#2C8092','#00D6D1','#5B363C','#9F6360','#FFFFFF'] },
+      { nombre:'13 · Oliva mecánica', modo:'oscuro', fondo:'#1E1B18', panel:'#353118', acento:'#D5D57E', acentoTexto:'#F4F2C4', secundario:'#A05A0D', tinta:'#E8E0C1', orbita:'#FFFFFF', eje:'#F4F2C4', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#D5D57E', tonos:['#1E1B18','#353118','#736A2E','#D5D57E','#C2B28C','#A05A0D'] },
+      { nombre:'14 · Cumbre cobriza', modo:'oscuro', fondo:'#011D32', panel:'#564055', acento:'#F5AD67', acentoTexto:'#F8DABE', secundario:'#95432C', tinta:'#F8DABE', orbita:'#FFFFFF', eje:'#FDE5CA', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#F5AD67', tonos:['#2E717E','#011D32','#564055','#95432C','#F8DABE','#F5AD67'] },
+      { nombre:'15 · Coral costero', modo:'claro', fondo:'#FFF0A5', panel:'#FFFFFF', acento:'#DE433C', acentoTexto:'#A7312C', secundario:'#437C88', tinta:'#171E28', orbita:'#171E28', eje:'#171E28', referencia:'#171E28', lluvia:'#171E28', lluviaBrillo:'#171E28', tonos:['#171E28','#3A464E','#437C88','#DE433C','#FA845A','#FFF0A5'] },
+      { nombre:'16 · Aurora digital', modo:'oscuro', fondo:'#07164C', panel:'#2A345F', acento:'#29D2EB', acentoTexto:'#DDFBFF', secundario:'#BD5261', tinta:'#DDFBFF', orbita:'#FFFFFF', eje:'#C3F9FF', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#29D2EB', tonos:['#07164C','#2A345F','#67344E','#BD5261','#247FA7','#29D2EB'] },
+      // Referencias aportadas el 26/10/2026. Los tres tonos originales se conservan
+      // en `tonos`; paneles o textos de apoyo se derivan solo para garantizar contraste.
+      { nombre:'17 · Laguna oliva', modo:'oscuro', fondo:'#025959', panel:'#092F31', acento:'#04BFBF', acentoTexto:'#9CF4F1', secundario:'#A0A603', tinta:'#DCFDFC', orbita:'#FFFFFF', eje:'#9CF4F1', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#04BFBF', tonos:['#A0A603','#025959','#04BFBF'] },
+      { nombre:'18 · Cobre vegetal', modo:'oscuro', fondo:'#AA4A03', panel:'#2D1B10', acento:'#AA8D03', acentoTexto:'#EBD98C', secundario:'#508E03', tinta:'#F9E9D7', orbita:'#FFFFFF', eje:'#EBD98C', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#AA8D03', tonos:['#AA8D03','#508E03','#AA4A03'] },
+      { nombre:'19 · Marfil tropical', modo:'claro', fondo:'#FCE3A7', panel:'#FFFFFF', acento:'#007E4A', acentoTexto:'#006B3E', secundario:'#F95443', tinta:'#133E2E', orbita:'#0F3125', eje:'#0F3125', referencia:'#0F3125', lluvia:'#0F3125', lluviaBrillo:'#007E4A', tonos:['#FCE3A7','#007E4A','#F95443'] },
+      { nombre:'20 · Rojo nocturno', modo:'oscuro', fondo:'#0F0E14', panel:'#1A1820', acento:'#ED0225', acentoTexto:'#FF9AAB', secundario:'#DFDFE5', tinta:'#FFFFFF', orbita:'#FFFFFF', eje:'#FF9AAB', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#ED0225', tonos:['#ED0225','#0F0E14','#DFDFE5'] },
+      { nombre:'21 · Horizonte fresco', modo:'oscuro', fondo:'#308AD9', panel:'#103251', acento:'#F2BC57', acentoTexto:'#FFE2A6', secundario:'#4AD97C', tinta:'#E9F9FF', orbita:'#FFFFFF', eje:'#FFE2A6', referencia:'#FFFFFF', lluvia:'#FFFFFF', lluviaBrillo:'#F2BC57', tonos:['#308AD9','#4AD97C','#F2BC57'] }
+    ];
+    // Grupos numerados con identificadores permanentes. Cada grupo conserva su
+    // combinación interna de colores y solo rota como bloque completo.
+    // El día de Colombia participa en el índice: las 48 franjas de un día
+    // desplazan el punto inicial del día siguiente en la secuencia completa de grupos.
+    // Se usa el reloj del dispositivo con zona America/Bogota (UTC-5 sin DST).
+    const MS_MEDIA_HORA = 30 * 60 * 1000;
+    const MS_COLOMBIA = 5 * 60 * 60 * 1000;
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    const metaColorScheme = document.querySelector('meta[name="color-scheme"]');
+    const rootStyle = document.documentElement.style;
+    function fechaHoraColombia(fecha = new Date()) {
+      try {
+        const partes = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'America/Bogota', year: 'numeric', month: '2-digit',
+          day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+        }).formatToParts(fecha);
+        const campos = Object.fromEntries(partes.filter(p => p.type !== 'literal')
+          .map(p => [p.type, Number(p.value)]));
+        if (Number.isInteger(campos.year) && Number.isInteger(campos.month) &&
+            Number.isInteger(campos.day) && campos.hour >= 0 && campos.hour <= 23) {
+          return campos;
+        }
+      } catch (_) { /* Respaldo UTC−5 si faltan datos de zona horaria. */ }
+      const col = new Date(fecha.getTime() - MS_COLOMBIA);
+      return {year: col.getUTCFullYear(), month: col.getUTCMonth()+1,
+        day: col.getUTCDate(), hour: col.getUTCHours(), minute: col.getUTCMinutes()};
+    }
+    function numeroFranjaColombia(fecha = new Date()) {
+      const f = fechaHoraColombia(fecha);
+      const dia = Math.floor(Date.UTC(f.year, f.month-1, f.day) / 86400000);
+      return dia * 48 + f.hour * 2 + Math.floor(f.minute / 30);
+    }
+    // Únicamente la selección inicial cambia: minuto de Colombia obtenido
+    // por internet dividido entre la cantidad de grupos. El ciclo posterior
+    // dura 30 minutos desde el ingreso, sin usar el reloj del dispositivo.
+    const ORIGEN_FRANJA = Math.floor(Date.UTC(2026, 9, 25, 5) / MS_MEDIA_HORA); // Referencia histórica para pruebas.
+    const moduloPositivo = (valor, n) => ((valor % n) + n) % n;
+    const TRANSICION = {
+      iniciado: false, minuto: null, fuente: '', entrada: performance.now(),
+      franja() { return this.iniciado ? Math.floor(Math.max(0, performance.now() - this.entrada) / MS_MEDIA_HORA) : null; },
+      restante() { return MS_MEDIA_HORA - (Math.max(0, performance.now() - this.entrada) % MS_MEDIA_HORA); }
+    };
+    window.RECURSOS_TRANSICION = TRANSICION;
+    function franjaDesdeOrigen() { return TRANSICION.franja() ?? 0; }
+    function indiceTemaColombia() {
+      const minuto = TRANSICION.iniciado ? TRANSICION.minuto : 0;
+      return moduloPositivo(Math.floor(minuto * PALETAS.length / 60) + franjaDesdeOrigen(), PALETAS.length);
+    }
+    async function solicitarHora(url, opciones, espera) {
+      // Un navegador antiguo o una red lenta tampoco pueden dejar la consulta pendiente.
+      const control = typeof AbortController === 'function' ? new AbortController() : null;
+      let limite;
+      try {
+        return await Promise.race([
+          fetch(url, { ...opciones, ...(control ? {signal: control.signal} : {}) }),
+          new Promise((_, rechazar) => {
+            limite = setTimeout(() => { control?.abort(); rechazar(new Error('Tiempo de espera')); }, espera);
+          })
+        ]);
+      } finally { clearTimeout(limite); }
+    }
+    async function horaDeInternet() {
+      // Prioridad: fecha HTTP del mismo sitio (sin servidores adicionales).
+      // Se evita el caché para impedir usar una fecha HTTP antigua.
+      if (location.protocol === 'https:' || location.protocol === 'http:') {
+        try {
+          const direccion = new URL(location.pathname || '/', location.origin);
+          direccion.searchParams.set('_hora_recursos', String(Math.floor(performance.now())));
+          const respuesta = await solicitarHora(direccion, {method:'HEAD', cache:'no-store'}, 2300);
+          const sello = Date.parse(respuesta.headers.get('Date') || '');
+          if (respuesta.ok && Number.isFinite(sello)) return { sello, fuente: 'HTTP' };
+        } catch (_) { /* Respaldo alternativo, sin interrumpir la página. */ }
+      }
+      // Respaldo para apertura local y servidores que no devuelvan Date.
+      try {
+        const respuesta = await solicitarHora('https://timeapi.io/api/Time/current/zone?timeZone=America/Bogota',
+          { cache: 'no-store' }, 2800);
+        if (!respuesta.ok) return null;
+        const dato = await respuesta.json();
+        if (![dato.year, dato.month, dato.day, dato.hour, dato.minute].every(Number.isInteger)) return null;
+        const sello = Date.UTC(dato.year, dato.month - 1, dato.day, dato.hour + 5, dato.minute,
+          Number(dato.seconds) || 0, Number(dato.milliSeconds) || 0);
+        return { sello, fuente: 'Colombia' };
+      } catch (_) { return null; }
+    }
+    async function iniciarTransicion() {
+      if (TRANSICION.iniciado) return;
+      const hora = await horaDeInternet();
+      if (!hora) {
+        // Reintentar discretamente. El fondo, logo y buscador siguen activos.
+        setTimeout(() => { void iniciarTransicion(); }, 30000);
+        return;
+      }
+      // Los servidores pueden redondear el sello al segundo; no restar latencia
+      // evita retroceder equivocadamente al minuto anterior al entrar.
+      TRANSICION.minuto = new Date(hora.sello).getUTCMinutes();
+      TRANSICION.fuente = hora.fuente;
+      TRANSICION.iniciado = true;
+      const anterior = indicePaleta;
+      actualizarTema();
+      // Asegurar la carga fotográfica incluso cuando el primer grupo sea el 01.
+      if (indicePaleta === anterior) window.dispatchEvent(new CustomEvent('recursos:cambio-paleta',
+        { detail: { franja: 0, indice: indicePaleta } }));
+    }
+    // El botón de confirmación aprovecha el tono secundario de cada grupo.
+    // Ajuste local de luminosidad para distinguirlo del panel y leer su etiqueta;
+    // no se alteran ni se reordenan los colores originales de las 21 paletas.
+    function colorAccion(tono,panel){
+      const rgb = hex => [1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));
+      const brillo = arr => {
+        const [r,g,b]=arr.map(x=>{const n=x/255;return n<=.04045?n/12.92:((n+.055)/1.055)**2.4;});
+        return r*.2126+g*.7152+b*.0722;
+      };
+      const contraste=(a,b)=>(Math.max(brillo(a),brillo(b))+.05)/(Math.min(brillo(a),brillo(b))+.05);
+      const mezcla=(a,b,f)=>a.map((n,i)=>Math.round(n*(1-f)+b[i]*f));
+      const rgbTexto=[[20,24,28],[255,255,255]];
+      const origen=rgb(tono), fondo=rgb(panel);
+      const objetivo=brillo(fondo)>.33?[0,0,0]:[255,255,255];
+      let accion=origen;
+      for(let i=0;i<=18;i++){
+        const candidato=mezcla(origen,objetivo,i/20);
+        if(contraste(candidato,fondo)>=2.8 &&
+           Math.max(...rgbTexto.map(c=>contraste(candidato,c)))>=4.5){accion=candidato;break;}
+      }
+      const texto=rgbTexto.sort((a,b)=>contraste(accion,b)-contraste(accion,a))[0];
+      const hex=rgb=>`#${rgb.map(v=>v.toString(16).padStart(2,'0')).join('')}`;
+      return {fondo:hex(accion),texto:hex(texto)};
+    }
+    function aplicarPaleta(p) {
+      const clara = p.modo === 'claro';
+      const accion=colorAccion(p.secundario,p.panel);
+      const reglas = {
+        '--fondo': p.fondo,
+        '--panel': clara ? 'rgba(255,255,255,.94)' : p.panel,
+        '--panel-solido': p.panel,
+        '--texto': clara ? '#202226' : '#F6F6F4',
+        '--texto-suave': clara ? '#414449' : '#E7E8E4',
+        '--texto-apagado': clara ? '#515962' : '#C4CCD2',
+        '--texto-contraste': clara ? '#FFFFFF' : '#16171A',
+        '--borde': clara ? 'rgba(23,26,28,.20)' : 'rgba(255,255,255,.22)',
+        '--borde-fuerte': p.acento,
+        '--acento': p.acento,
+        '--acento-2': p.secundario,
+        '--acento-3': p.secundario,
+        '--acento-lectura': p.acentoTexto,
+        '--boton': clara ? 'rgba(60,63,69,.06)' : 'rgba(255,255,255,.08)',
+        '--boton-hover': clara ? 'rgba(60,63,69,.14)' : 'rgba(255,255,255,.17)',
+        '--accion-fondo': accion.fondo,
+        '--accion-texto': accion.texto,
+        '--exito': clara ? '#237447' : '#A3F4C8',
+        '--error': clara ? '#A52228' : '#FFC0BC',
+        '--info': clara ? '#48535C' : '#D6E0E5',
+        '--lluvia': p.lluvia,
+        '--lluvia-brillo': p.lluviaBrillo,
+        '--lluvia-sombra': clara ? 'rgba(0,0,0,.15)' : 'rgba(255,255,255,.19)',
+        '--marca': clara ? '#17191B' : '#FFFFFF',
+        '--seleccion': clara ? 'rgba(19,24,28,.085)' : 'rgba(255,255,255,.12)',
+        '--resaltado': clara ? '#FFE19B' : '#FDF4CE',
+      };
+      for (const [propiedad, valor] of Object.entries(reglas)) rootStyle.setProperty(propiedad, valor);
+      window.RECURSOS_PALETA_ACTUAL = p;
+      document.body.classList.toggle('tema-claro', clara);
+      document.documentElement.style.colorScheme = clara ? 'light' : 'dark';
+      document.body.dataset.paleta = p.nombre;
+      if (metaThemeColor) metaThemeColor.content = p.fondo;
+      if (metaColorScheme) metaColorScheme.content = clara ? 'light' : 'dark';
+    }
+    // La primera paleta funciona como respaldo inmediato; la referencia de
+    // internet se obtiene sin bloquear el buscador y activa la rotación real.
+    let indicePaleta = -1;
+    let temporizadorTema = 0;
+    function actualizarTema() {
+      const siguiente = indiceTemaColombia();
+      if (siguiente !== indicePaleta) {
+        indicePaleta = siguiente;
+        aplicarPaleta(PALETAS[indicePaleta]);
+        if (TRANSICION.iniciado) window.dispatchEvent(new CustomEvent('recursos:cambio-paleta', {
+          detail: {franja: franjaDesdeOrigen(), indice: indicePaleta}
+        }));
+      }
+      clearTimeout(temporizadorTema);
+      if (TRANSICION.iniciado) temporizadorTema = setTimeout(actualizarTema,
+        Math.max(1000, TRANSICION.restante() + 80));
+    }
+    actualizarTema();
+    void iniciarTransicion();
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) clearTimeout(temporizadorTema);
+      else actualizarTema();
+    });
+    window.__pruebaPaletas = {
+      total: PALETAS.length,
+      actual: () => document.body.dataset.paleta,
+      indice: () => indicePaleta,
+      grupo: () => indicePaleta + 1,
+      fechaHoraColombia,
+      franjaParaFecha: franjaDesdeOrigen,
+      franjaAbsolutaParaFecha: numeroFranjaColombia,
+      origenFranja: ORIGEN_FRANJA,
+      temaParaFecha: fecha => PALETAS[indiceTemaColombia(fecha)].nombre,
+      indiceParaFecha: indiceTemaColombia,
+      alternancia: PALETAS.map(p => p.modo),
+      actualizar: actualizarTema,
+      transicionActiva: false,
+      colores: () => PALETAS.map(p => ({nombre:p.nombre, modo:p.modo, fondo:p.fondo, panel:p.panel, acento:p.acento, secundario:p.secundario}))
+    };
+
+    const formulario = document.getElementById('formulario');
+    const entrada = document.getElementById('comando');
+    const estado = document.getElementById('estado');
+    const resultados = document.getElementById('resultados');
+    const vistaPrevia = document.getElementById('vista-previa');
+    const vistaDescripcion = document.getElementById('vista-descripcion');
+    const vistaIr = document.getElementById('vista-ir');
+    const panelResultados = document.querySelector('.panel-resultados');
+    const buscadorContenedor = document.querySelector('.centro');
+    const indicacion = document.getElementById('indicacion');
+    const alcanceActual = document.getElementById('alcance-actual');
+    const quitarCarpeta = document.getElementById('quitar-carpeta');
+    const nombreCarpeta = document.getElementById('nombre-carpeta');
+    const modal = document.getElementById('modal');
+    const nombreDescarga = document.getElementById('nombre-descarga');
+    const botonSi = document.getElementById('descargar-si');
+    const botonNo = document.getElementById('descargar-no');
+
+
+    // Un teclado táctil puede reducir el área visible sin cambiar innerHeight.
+    // Por eso se usa VisualViewport cuando existe y, como respaldo, resize.
+    // Ningún navegador garantiza abrir el teclado sin un gesto del usuario.
+    const vistaVisual = window.visualViewport;
+    const sitioBuscador = document.querySelector('.centro');
+    const modoTactil = window.matchMedia('(pointer: coarse)');
+    let altoReferencia = Math.max(window.innerHeight, vistaVisual?.height || 0);
+    let reajustePendiente = 0;
+    let tecladoVisible = false;
+    function ajustarBuscador() {
+      reajustePendiente = 0;
+      const movil = window.innerWidth <= 700 || (modoTactil.matches && window.innerWidth <= 1024);
+      const escala = vistaVisual?.scale || 1;
+      const superior = vistaVisual?.offsetTop || 0;
+      const visible = vistaVisual?.height || window.innerHeight;
+      const bordeInferior = superior + visible;
+      // El logo no pertenece al buscador: se fija a la esquina visible,
+      // incluso si el navegador desplaza el viewport al mostrar el teclado.
+      const derechaVisible = Math.max(0, window.innerWidth -
+        ((vistaVisual?.offsetLeft || 0) + (vistaVisual?.width || window.innerWidth)));
+      document.documentElement.style.setProperty('--firma-vista-superior',
+        `${Math.round(Math.max(0, superior))}px`);
+      document.documentElement.style.setProperty('--firma-vista-derecha',
+        `${Math.round(derechaVisible)}px`);
+      const focoBusqueda = document.activeElement === entrada;
+      const geometria = navigator.virtualKeyboard?.boundingRect;
+      const tecladoGeometrico = movil && focoBusqueda && !!(geometria && geometria.height > 110);
+      if (!focoBusqueda && visible >= altoReferencia - 25) altoReferencia = Math.max(altoReferencia, visible);
+      const reduccion = Math.max(altoReferencia, window.innerHeight) - visible;
+      const probableTeclado = movil && focoBusqueda && escala < 1.2 &&
+        reduccion > Math.max(120, altoReferencia * .18);
+      tecladoVisible = tecladoGeometrico || probableTeclado;
+      const alturaBarra = formulario.getBoundingClientRect().height || 68;
+      const margenInferior = movil ? 16 : 20;
+      const bordeUtil = tecladoGeometrico ? Math.min(bordeInferior, geometria.top) : bordeInferior;
+      // La barra arranca abajo en móvil y acompaña al teclado cuando aparece.
+      // En escritorio se coloca a 3/4 de la altura, dejando espacio arriba.
+      const centro = movil
+        ? Math.max(superior + alturaBarra/2 + 16, bordeUtil - margenInferior - alturaBarra/2)
+        : superior + visible * .75;
+      document.documentElement.style.setProperty('--buscador-y', `${Math.round(centro)}px`);
+      document.body.classList.toggle('buscador-movil', movil);
+      const disponibles = centro - alturaBarra/2 - superior - 18;
+      document.documentElement.style.setProperty('--resultados-alto',
+        `${Math.round(Math.max(52, Math.floor(disponibles * .80)))}px`);
+    }
+    function programarAjuste() {
+      if (!reajustePendiente) reajustePendiente = requestAnimationFrame(ajustarBuscador);
+    }
+    window.addEventListener('resize', programarAjuste, {passive:true});
+    vistaVisual?.addEventListener('resize', programarAjuste, {passive:true});
+    vistaVisual?.addEventListener('scroll', programarAjuste, {passive:true});
+    navigator.virtualKeyboard?.addEventListener?.('geometrychange', programarAjuste);
+    entrada.addEventListener('focus', programarAjuste);
+    entrada.addEventListener('blur', programarAjuste);
+    modoTactil.addEventListener?.('change', programarAjuste);
+    // Foco inicial solo para teclado físico. En móvil, el toque abre el teclado
+    // y la barra lo acompaña; no se intenta forzar la aparición de un IME.
+    ajustarBuscador();
+    if (!((window.innerWidth <= 700) || (modoTactil.matches && window.innerWidth <= 1024))) {
+      entrada.focus({preventScroll:true});
+    }
+    requestAnimationFrame(programarAjuste);
+    window.__pruebaTeclado = {
+      estado: () => ({tecladoVisible, y: sitioBuscador.getBoundingClientRect().top,
+        barra: formulario.getBoundingClientRect().toJSON(),
+        resultados: resultados.getBoundingClientRect().toJSON(),
+        visual: {alto: vistaVisual?.height || window.innerHeight, superior: vistaVisual?.offsetTop || 0}}),
+      ajustar: ajustarBuscador
+    };
+
+    // Buscador publicado en el sitio personal: los recursos viven en OTRO repositorio.
+    const CONFIG_GITHUB = {
+      usuario: 'arleyzarate',
+      repositorio: 'recursos',
+      carpeta: '',
+      rama: ''
+    };
+    const URL_RECURSOS = 'https://arleyzarate.github.io/recursos/';
+    const EXCLUIDOS = /^(?:index(?:\.|$)|leame(?:[._\- ]|$)|readme(?:[._\- ]|$)|actualizar(?:[._\- ]|$)|archivos(?:[._\- ]|$)|archivos_archivos(?:[._\- ]|$)|palabras(?:[._\- ]|$)|catalogo(?:[._\- ]|$)|license(?:\.|$)|\.nojekyll$|\.gitignore$|\.ds_store$|recursos_web_arley_zarate(?:[._\- ]|$))/i;
+    const CARPETAS_TECNICAS = /^(?:\.github|\.git|node_modules|__pycache__)$/i;
+    const normalizar = texto => String(texto || '').normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-CO');
+    const simplificar = texto => normalizar(texto).replace(/[\s_\-]+/g, '');
+    // El catálogo puede contener código: solo mostrar formatos autorizados por extensiones.js.
+    // Si faltara el archivo de configuración, se usa un mínimo seguro.
+    function leerExtensionesPermitidas(){
+      return new Set((Array.isArray(window.RECURSOS_EXTENSIONES) ? window.RECURSOS_EXTENSIONES :
+        ['.html', '.htm', '.pdf', '.dwg', '.dxf', '.lsp'])
+        .map(valor=>String(valor).trim().toLowerCase().replace(/^\.?/, '.'))
+        .filter(valor=>/^\.[a-z0-9]+$/.test(valor)));
+    }
+    let EXTENSIONES_PERMITIDAS=leerExtensionesPermitidas();
+    // Exclusión adicional del código propio, incluso si se incluye por error en la lista.
+    const EXTENSIONES_CODIGO = new Set([
+      '.js', '.mjs', '.cjs', '.css', '.map', '.json', '.ts', '.tsx', '.jsx',
+      '.yml', '.yaml', '.env', '.php', '.py', '.ps1', '.sh', '.bat'
+    ]);
+    const extensionDe = nombre => {
+      const punto = nombre.lastIndexOf('.');
+      return punto > 0 ? nombre.slice(punto).toLowerCase() : '';
+    };
+    const esHTML = nombre => /\.html?$/i.test(nombre);
+    const esIndice = nombre => /^index\.html$/i.test(nombre);
+    const nombreAmigable = nombre => nombre.replace(/[_\-]+/g, ' ').replace(/\s+/g, ' ').trim();
+    // Presentación exclusivamente visual: se conservan intactos nombres reales,
+    // rutas, consultas y archivos descargados. Las denominaciones conocidas
+    // prevalecen sobre el estilo tipográfico de la interfaz.
+    const NOMBRES_OFICIALES = Object.freeze({
+      autocad:'AutoCAD', smart3d:'Smart3D', nodolibre:'NodoLibre',
+      scalesinc:'ScaleSinc', scalesync:'ScaleSinc', html:'HTML', pdf:'PDF',
+      dwg:'DWG', dxf:'DXF', lsp:'LSP', csv:'CSV'
+    });
+    function nombreVisible(nombre) {
+      const limpio = nombreAmigable(String(nombre || ''));
+      const presentado = limpio.replace(/auto\s*cad|smart\s*3d|nodo\s*libre|scale\s*(?:sinc|sync)|[\p{L}\d]+/giu, fragmento => {
+        const oficial = NOMBRES_OFICIALES[simplificar(fragmento)];
+        if (oficial) return oficial;
+        // Solo los términos completamente MAYÚSCULOS se convierten a caja mixta;
+        // las marcas ya escritas con su capitalización original se respetan.
+        return /^[\p{Lu}\d]+$/u.test(fragmento) && /\p{L}/u.test(fragmento)
+          ? fragmento[0].toLocaleUpperCase('es-CO') + fragmento.slice(1).toLocaleLowerCase('es-CO')
+          : fragmento;
+      });
+      return presentado ? presentado[0].toLocaleUpperCase('es-CO') + presentado.slice(1) : presentado;
+    }
+    function archivoVisible(nombre) {
+      const punto = nombre.lastIndexOf('.');
+      if (punto < 1) return nombreVisible(nombre);
+      return nombreVisible(nombre.slice(0, punto)) + nombre.slice(punto).toLowerCase();
+    }
+    function rutaSegura(ruta) {
+      if (typeof ruta !== 'string' || !ruta || /[\\\u0000-\u001f\u007f]/.test(ruta)) return false;
+      const piezas = ruta.split('/');
+      return piezas.every(p => p && p !== '.' && p !== '..' && !p.startsWith('.')) &&
+        !piezas.slice(0, -1).some(p => CARPETAS_TECNICAS.test(p));
+    }
+    function crearEntrada(ruta) {
+      if (!rutaSegura(ruta)) return null;
+      const partes = ruta.split('/');
+      const archivo = partes[partes.length - 1];
+      const rutaCarpeta = partes.slice(0, -1).join('/');
+      const extension = extensionDe(archivo);
+      if (!EXTENSIONES_PERMITIDAS.has(extension) || EXTENSIONES_CODIGO.has(extension)) return null;
+      // index.html de una carpeta representa la aplicación, no un archivo excluido.
+      if (esIndice(archivo) && partes.length > 1) {
+        const nombreCarpeta = partes[partes.length - 2];
+        return {
+          ruta, titulo: nombreVisible(nombreCarpeta),
+          ubicacion: partes.slice(0, -2).map(nombreVisible).join(' / '),
+          buscar: partes.slice(0, -1).map(nombreAmigable).join(' '),
+          pagina: true, indice: true, descarga: ''
+        };
+      }
+      if (EXCLUIDOS.test(archivo)) return null;
+      const pagina = esHTML(archivo);
+      return {
+        ruta, titulo: pagina ? nombreVisible(archivo.replace(/\.html?$/i, '')) : archivoVisible(archivo),
+        ubicacion: partes.slice(0, -1).map(nombreVisible).join(' / '),
+        buscar: rutaCarpeta.replace(/[/_\-]+/g, ' ') + ' ' + archivo + ' ' + (pagina ? archivo.replace(/\.html?$/i, '') : ''),
+        pagina, indice: false, descarga: archivo
+      };
+    }
+    function catalogoFiltrado(rutas) {
+      const vistos = new Set();
+      return rutas.map(crearEntrada).filter(entrada => {
+        if (!entrada || vistos.has(entrada.ruta)) return false;
+        vistos.add(entrada.ruta);
+        return true;
+      }).sort((a, b) => a.titulo.localeCompare(b.titulo, 'es', {numeric:true, sensitivity:'base'}) ||
+        a.ruta.localeCompare(b.ruta, 'es', {sensitivity:'base'}));
+    }
+    const codificarRuta = ruta => ruta.split('/').map(encodeURIComponent).join('/');
+    function urlEntrada(item) {
+      // file:// no resuelve carpetas a index.html: aquí sí se incluye el nombre real.
+      const ruta = item.indice && location.protocol !== 'file:'
+        ? item.ruta.slice(0, -'index.html'.length) : item.ruta;
+      return (location.protocol === 'file:' ? './' : URL_RECURSOS) + codificarRuta(ruta);
+    }
+    const nombresLocales = () => Array.isArray(window.RECURSOS_ARCHIVOS) ? window.RECURSOS_ARCHIVOS : [];
+    let catalogo = [];
+    let carpetasDisponibles = [];
+    let contenidoPorCarpeta = new Map();
+    let carpetaActiva = null;
+    let cargando = true;
+    let errorCatalogo = false;
+    let coincidencias = [];
+    let indiceActivo = -1;
+    let archivoPendiente = null;
+
+    const claveCarpeta = ruta => normalizar(ruta).replace(/[\s_-]+/g, '');
+    const contenidoCarpeta = ruta => contenidoPorCarpeta.get(ruta) || 0;
+    // Los HTML aparecen como aplicaciones (ABRIR), pero NO justifican una
+    // sugerencia de CARPETA. Solo cuentan descargas autorizadas por extensiones.js.
+    function esDescargableEnCarpeta(item) {
+      if (!item || item.pagina || item.indice || !item.ruta) return false;
+      const archivo = item.ruta.split('/').at(-1);
+      const extension = extensionDe(archivo);
+      return EXTENSIONES_PERMITIDAS.has(extension) &&
+        !EXTENSIONES_CODIGO.has(extension) && !EXCLUIDOS.test(archivo);
+    }
+    function actualizarCarpetas() {
+      const conteos = new Map();
+      for (const item of catalogo) {
+        if (!esDescargableEnCarpeta(item)) continue;
+        const partes = item.ruta.split('/').slice(0, -1);
+        for (let n = 1; n <= partes.length; n++) {
+          const ruta = partes.slice(0, n).join('/');
+          conteos.set(ruta, (conteos.get(ruta) || 0) + 1);
+        }
+      }
+      contenidoPorCarpeta = conteos;
+      carpetasDisponibles = [...conteos.keys()]
+        .sort((a,b) => a.split('/').length - b.split('/').length ||
+          a.localeCompare(b,'es',{sensitivity:'base'}));
+    }
+    function encontrarCarpetaExacta(texto) {
+      if (carpetaActiva || !texto) return null;
+      const busca = claveCarpeta(texto.replace(/\\/g,'/'));
+      const porRuta = carpetasDisponibles.find(r => claveCarpeta(r) === busca);
+      if (porRuta) return porRuta;
+      return carpetasDisponibles.find(r => claveCarpeta(r.split('/').at(-1)) === busca) || null;
+    }
+    function buscarEnCarpeta(ruta) {
+      if (!ruta || !carpetasDisponibles.includes(ruta) || contenidoCarpeta(ruta) < 1) return;
+      cerrarVista();
+      carpetaActiva = ruta;
+      entrada.value = '';
+      alcanceActual.hidden = false;
+      formulario.classList.add('con-alcance');
+      nombreCarpeta.textContent = nombreVisible(ruta.split('/').at(-1));
+      quitarCarpeta.setAttribute('aria-label', 'Quitar filtro de ' + ruta);
+      entrada.setAttribute('aria-label','Buscar dentro de ' + ruta);
+      entrada.placeholder = 'Filtrar…';
+      actualizarResultados();
+      entrada.focus({preventScroll:true});
+    }
+    function quitarAlcance() {
+      cerrarVista();
+      carpetaActiva = null;
+      alcanceActual.hidden = true;
+      formulario.classList.remove('con-alcance');
+      entrada.value = '';
+      entrada.removeAttribute('aria-label');
+      entrada.placeholder = '';
+      notificar('');
+      actualizarResultados();
+      entrada.focus({preventScroll:true});
+    }
+    quitarCarpeta.addEventListener('click', quitarAlcance);
+    // Ayuda de pruebas locales, sin controles decorativos en la pantalla.
+    window.__pruebaCarpetas = {estado: () => ({carpeta:carpetaActiva,
+      disponibles:carpetasDisponibles.slice(),conteos:Object.fromEntries(contenidoPorCarpeta),total:coincidencias.length}),abrir:buscarEnCarpeta,salir:quitarAlcance};
+
+    function notificar(mensaje, tipo = '') {
+      estado.textContent = mensaje;
+      estado.className = 'estado' + (tipo ? ' ' + tipo : '');
+    }
+    function ocultarLista() {
+      resultados.replaceChildren();
+      resultados.hidden = true;
+      entrada.setAttribute('aria-expanded', 'false');
+      entrada.removeAttribute('aria-activedescendant');
+      indiceActivo = -1;
+    }
+    function mostrarIndicacion() {
+      indicacion.classList.toggle('oculta', entrada.value.length > 0 || !!carpetaActiva);
+    }
+    async function pedirJSON(url) {
+      const respuesta = await fetch(url, { headers: { Accept: 'application/vnd.github+json' } });
+      if (!respuesta.ok) throw new Error('GitHub API: ' + respuesta.status);
+      return respuesta.json();
+    }
+    async function consultarGitHub() {
+      const base = 'https://api.github.com/repos/' + encodeURIComponent(CONFIG_GITHUB.usuario)
+        + '/' + encodeURIComponent(CONFIG_GITHUB.repositorio);
+      // La API de árboles entrega rutas completas, incluso dentro de subcarpetas.
+      const informacion = await pedirJSON(base);
+      const rama = CONFIG_GITHUB.rama || informacion.default_branch;
+      if (!rama) throw new Error('No se encontró la rama publicada.');
+      const urlArbol = base + '/git/trees/';
+      const arbol = await pedirJSON(urlArbol + encodeURIComponent(rama) + '?recursive=1');
+      let entradas;
+      if (!arbol.truncated) {
+        entradas = arbol.tree || [];
+      } else {
+        // En repositorios muy grandes, recorrer subárboles evita resultados incompletos.
+        entradas = [];
+        const cola = [{ sha: rama, ruta: '' }];
+        while (cola.length) {
+          const actual = cola.shift();
+          const parcial = await pedirJSON(urlArbol + encodeURIComponent(actual.sha));
+          if (parcial.truncated || !Array.isArray(parcial.tree)) throw new Error('Árbol de GitHub incompleto.');
+          for (const item of parcial.tree) {
+            const ruta = actual.ruta ? actual.ruta + '/' + item.path : item.path;
+            if (item.type === 'tree') cola.push({ sha: item.sha, ruta });
+            if (item.type === 'blob') entradas.push({ ...item, path: ruta });
+          }
+        }
+      }
+      const carpeta = CONFIG_GITHUB.carpeta.replace(/^\/+|\/+$/g, '');
+      const prefijo = carpeta ? carpeta + '/' : '';
+      return entradas.filter(e => e.type === 'blob' && e.mode !== '120000' && e.path.startsWith(prefijo))
+        .map(e => e.path.slice(prefijo.length));
+    }
+    async function cargarCatalogo() {
+      if (location.protocol === 'file:') {
+        catalogo = catalogoFiltrado(nombresLocales());
+        actualizarCarpetas();
+        cargando = false;
+        errorCatalogo = catalogo.length === 0;
+        actualizarResultados();
+        return;
+      }
+      try {
+        catalogo = catalogoFiltrado(await consultarGitHub());
+        errorCatalogo = catalogo.length === 0;
+      } catch (_) {
+        // El respaldo corresponde a una copia LOCAL de los recursos.
+        catalogo = catalogoFiltrado(nombresLocales());
+        errorCatalogo = catalogo.length === 0;
+      } finally {
+        cargando = false;
+        actualizarCarpetas();
+        actualizarResultados();
+      }
+    }
+    function comparar(item, consulta) {
+      const buscado = normalizar(consulta).trim();
+      if (!buscado) return null;
+      const titulo = normalizar(item.titulo);
+      const nombreRuta = normalizar(item.buscar);
+      const sinSeparadores = simplificar(consulta);
+      if (!titulo.includes(buscado) && !nombreRuta.includes(buscado) &&
+          !simplificar(item.buscar).includes(sinSeparadores)) return null;
+      if (titulo === buscado) return 0;
+      if (titulo.startsWith(buscado)) return 1;
+      if (titulo.split(/[\s_\-]+/).some(p => p.startsWith(buscado))) return 2;
+      if (titulo.includes(buscado)) return 3;
+      return 4;
+    }
+    function marcarSeleccion(indice) {
+      indiceActivo = indice;
+      [...resultados.querySelectorAll('.resultado')].forEach((boton, i) => {
+        const activo = i === indice;
+        boton.classList.toggle('activo', activo);
+        boton.setAttribute('aria-selected', String(activo));
+        if (activo) {
+          entrada.setAttribute('aria-activedescendant', boton.id);
+          boton.scrollIntoView({ block: 'nearest' });
+        }
+      });
+      if (indice === -1) entrada.removeAttribute('aria-activedescendant');
+    }
+    function insertarNombre(elemento, nombre, consulta) {
+      // Todo el texto se crea como nodos, no como HTML proveniente de GitHub.
+      const buscado = normalizar(consulta).trim();
+      const index = normalizar(nombre).indexOf(buscado);
+      if (index < 0 || !buscado) { elemento.textContent = nombre; return; }
+      elemento.appendChild(document.createTextNode(nombre.slice(0, index)));
+      const resaltado = document.createElement('mark');
+      resaltado.textContent = nombre.slice(index, index + consulta.trim().length);
+      elemento.appendChild(resaltado);
+      elemento.appendChild(document.createTextNode(nombre.slice(index + consulta.trim().length)));
+    }
+    function actualizarResultados() {
+      mostrarIndicacion();
+      const consulta = entrada.value.trim();
+      ocultarLista();
+      coincidencias = [];
+      if (!modal.hidden) return;
+      if (!carpetaActiva && !consulta) return;
+      if (cargando) { notificar('Consultando archivos…', 'info'); return; }
+      if (errorCatalogo) {
+        notificar('No se pudo consultar la lista de archivos. Revise la configuración.', 'error');
+        return;
+      }
+      const dentro = item => !carpetaActiva ||
+        normalizar(item.ruta).startsWith(normalizar(carpetaActiva + '/'));
+      const archivos = catalogo.filter(dentro).map(item => ({
+        item, puntaje: consulta ? comparar(item, consulta) : 0
+      })).filter(r => r.puntaje !== null);
+      if (carpetaActiva && contenidoCarpeta(carpetaActiva) < 1) { notificar('La carpeta seleccionada no contiene archivos descargables.', 'info'); return; }
+      const carpetas = carpetaActiva ? [] : carpetasDisponibles.filter(r => contenidoCarpeta(r) > 0).filter(r => {
+        const buscado = claveCarpeta(consulta);
+        return buscado && (claveCarpeta(r).startsWith(buscado) ||
+          claveCarpeta(r.split('/').at(-1)).startsWith(buscado));
+      }).slice(0, 12).map(ruta => ({
+        item: {titulo: nombreVisible(ruta.split('/').at(-1)), ruta, rutaCarpeta:ruta,
+          ubicacion: ruta.includes('/') ? ruta.slice(0, ruta.lastIndexOf('/')).split('/').map(nombreVisible).join(' / ') : '',
+          carpetaFiltro:true},puntaje:-1
+      }));
+      coincidencias = carpetas.concat(archivos)
+        .sort((a, b) => a.puntaje - b.puntaje ||
+          a.item.titulo.localeCompare(b.item.titulo, 'es', {sensitivity:'base'}))
+        .map(resultado => resultado.item);
+      if (!coincidencias.length) { notificar('Sin coincidencias', 'info'); return; }
+      const total = coincidencias.length;
+      coincidencias = coincidencias.slice(0, 100);
+      notificar(total > 100 ? 'Se muestran los primeros 100 resultados de ' + total + '.' : '',
+        total > 100 ? 'info' : '');
+      const fragmento = document.createDocumentFragment();
+      coincidencias.forEach((item, indice) => {
+        const opcion = document.createElement('button');
+        opcion.type = 'button';
+        opcion.className = 'resultado' + (item.carpetaFiltro ? ' tipo-carpeta' : '');
+        opcion.style.setProperty('--orden', Math.min(indice, 8));
+        opcion.id = 'resultado-' + indice;
+        opcion.setAttribute('role', 'option');
+        opcion.setAttribute('aria-selected', 'false');
+        const titulo = document.createElement('span');
+        titulo.className = 'archivo';
+        const nombre = document.createElement('span');
+        nombre.className = 'nombre';
+        insertarNombre(nombre, item.titulo, consulta);
+        titulo.appendChild(nombre);
+        if (item.ubicacion) {
+          const ubicacion = document.createElement('span');
+          ubicacion.className = 'ubicacion';
+          ubicacion.textContent = item.ubicacion;
+          titulo.appendChild(ubicacion);
+        }
+        const accion = document.createElement('span');
+        accion.className = 'accion';
+        accion.textContent = item.carpetaFiltro ? 'Carpeta ↗' :
+          (item.pagina ? 'Abrir ↗' : 'Descargar ↓');
+        opcion.append(titulo, accion);
+        opcion.addEventListener('click', () => seleccionarArchivo(item));
+        fragmento.appendChild(opcion);
+      });
+      resultados.appendChild(fragmento);
+      resultados.hidden = false;
+      entrada.setAttribute('aria-expanded', 'true');
+    }
+    // Texto breve de documentos canónicos del proyecto, como respaldo cuando el
+    // HTML publicado no expone metadatos; no se cargan MD ni cuentas externas.
+    const INTENCIONES_DOCUMENTADAS = Object.freeze({
+      nodolibre:'Organiza ideas, mapas conceptuales, diagramas de bloques y referencias visuales mediante nodos y conectores.',
+      tubitrazo:'Editor de isométricos 2D para representar tuberías, componentes y conexiones, con tablas de materiales y herramientas de dibujo.',
+      renovaram:'Consulta el inventario de memoria RAM y su uso en Windows. Algunas funciones necesitan un componente local y autorización del usuario.',
+      organizadortexto:'Organiza texto técnico y listados con un ancho de línea configurable, sangrías y edición sincronizada.',
+      organizadordetexto:'Organiza texto técnico y listados con un ancho de línea configurable, sangrías y edición sincronizada.',
+      granimagen:'Visualiza imágenes GeoTIFF y formatos habituales, con recortes, capas y referencias de proyecto.',
+      arleygi:'Editor de símbolos para Gran Imagen: permite organizar imágenes y SVG en capas, con escala, rotación y recortes.',
+      megaste:'Organiza fotografías de recibos y facturas en páginas para su revisión y exportación.'
+    });
+    const ACERCA_DOCUMENTADOS = Object.freeze({
+      nodolibre: [
+        'Acerca de NodoLibre · v5.23.0',
+        'NodoLibre permite crear mapas conceptuales y diagramas, conectar ideas y organizar información.',
+        'Diseño realizado por: Arley Zarate. Desarrollado por: Noa. Fecha: 31 de octubre de 2026. Versión: 5.23.0.',
+        'Bloques: toque uno para seleccionar, arrástrelo directamente para mover y pulse el lápiz para abrir la tabla de edición. Reordene filas, cambie títulos o listas, seleccione colores y use los iconos por fila para alinear el texto o mostrarlo en mayúsculas, minúsculas o forma mixta.',
+        'Estilos de texto: Texto presenta letras y lazos negros sobre blanco; Texto color conserva las letras negras y muestra los lazos originales en color; Texto color2 asigna un color contrastante a cada fila, compartido por sus dos conectores y sus enlaces, con transición cromática cuando se unen filas diferentes; Texto blanco utiliza letras y lazos blancos sobre negro. Los tres mantienen bloques compactos, sin recuadros iniciales y con conectores al 50 %. Todos admiten personalización individual.',
+        'Selección: cuatro indicadores triangulares animados señalan las esquinas de los bloques activos. Al tocarlos aparece un destello breve de polvo; con movimiento reducido los indicadores permanecen inmóviles.',
+        'Duplicados: el grupo de capas Duplicados detecta coincidencias completas sin diferenciar mayúsculas y minúsculas. Cada grupo tiene una sombra de color; el icono de paleta cambia los colores de todos los grupos. Puede conectar coincidencias con líneas punteadas, elegir Bézier u ortogonal de forma independiente de los enlaces normales, ocultar cada línea individual y excluir títulos o listas.'
+      ].join('\n\n'),
+      granimagen: [
+        'Gran Imagen · v1.8.0',
+        'Importe imágenes locales como capas en la pestaña actual. Use + para abrir un proyecto o crear uno nuevo. Puede arrastrar una imagen y ubicarla en el punto donde la suelte o mediante su referencia espacial compatible.',
+        'Permite medir distancias, áreas, rutas y coordenadas a partir del EPSG y la resolución espacial de la base. Estas mediciones no sustituyen un levantamiento topográfico.',
+        'Puede pegar imágenes y texto con Ctrl+V, recortar mediante un rectángulo ajustable, deshacer con Ctrl+Z y rehacer con Ctrl+Y. Las capas de texto admiten fuentes, escala, rotación y simetría. También puede cambiar el orden de las capas.',
+        'La vista GeoTIFF comienza con una panorámica y mejora el detalle visible al ampliar. El indicador de carga señala etapas completadas, no bytes leídos.',
+        'La exportación compone las capas visibles hasta un máximo de ocho millones de píxeles. Puede conservar coordenadas GeoTIFF compatibles, pero no necesariamente todos los metadatos originales.'
+      ].join('\n\n')
+    });
+    const DESCRIPCIONES_CACHE = new Map();
+    let seleccionado = null, revisionVista = 0;
+    const claveHerramienta = item => simplificar((item.indice ? item.ruta.split('/').at(-2) : item.titulo)||'');
+    function cerrarVista() { ++revisionVista; seleccionado = null; vistaPrevia.hidden = true; vistaIr.hidden = true; vistaIr.classList.remove('llamar-atencion'); buscadorContenedor.classList.remove('con-vista'); }
+    function textoAlternativo(item) {
+      if (item.carpetaFiltro) return 'Carpeta con ' + contenidoCarpeta(item.rutaCarpeta) + ' archivo(s) descargable(s) permitido(s). Seleccione Ir para consultar su contenido.';
+      if (item.pagina) return ACERCA_DOCUMENTADOS[claveHerramienta(item)] || INTENCIONES_DOCUMENTADAS[claveHerramienta(item)] || 'Aplicación HTML. La página no ofrece una descripción verificable en su encabezado.';
+      return 'Archivo ' + (extensionDe(item.ruta).toUpperCase() || 'disponible') + ' disponible para descargar. No se encontró una descripción en su encabezado.';
+    }
+    // Lectura acotada: 192 KiB para HTML, 24 KiB para LSP; no bloquea el buscador.
+    async function leerInicioTexto(url, maximo=24576) {
+      const controlador = typeof AbortController==='function' ? new AbortController() : null;
+      const temporizador = setTimeout(()=>controlador?.abort(),2600);
+      try {
+        const respuesta=await fetch(url,{signal:controlador?.signal,cache:'force-cache'});
+        if (!respuesta.ok) throw new Error('Recurso no disponible');
+        if (respuesta.body?.getReader) {
+          const lector=respuesta.body.getReader(), decodificador=new TextDecoder('utf-8');
+          let fragmento='',bytes=0;
+          try {
+            while(bytes<maximo){
+              const paso=await lector.read();if(paso.done)break;
+              bytes+=paso.value.byteLength;
+              fragmento+=decodificador.decode(paso.value.slice(0,Math.max(0,maximo-(bytes-paso.value.byteLength))),{stream:true});
+              if(bytes>=maximo)break;
+            }
+          } finally { void lector.cancel().catch(()=>{}); }
+          return fragmento;
+        }
+        return (await respuesta.text()).slice(0,maximo);
+      } finally {clearTimeout(temporizador);}
+    }
+    // Buscar primero el panel «Acerca de» (también oculto), luego «Intención».
+    // Solo interpreta el texto de HTML publicado. Nunca evalúa scripts recibidos.
+    function textoSeccion(elemento,limite=6200) {
+      const copia=elemento.cloneNode(true);
+      copia.querySelectorAll('script,style,svg,canvas,button,input,select,textarea,nav,[aria-hidden="true"]')
+        .forEach(n=>n.remove());
+      // Conservar saltos de párrafo sin insertar HTML de terceros en la página.
+      copia.querySelectorAll('br,p,li,h1,h2,h3,h4,section,article,div').forEach(n=>{
+        if(n.tagName==='BR')n.replaceWith(document.createTextNode('\n'));
+        else n.append(document.createTextNode('\n'));
+      });
+      return (copia.textContent||'').replace(/\r/g,'').replace(/[ \t]+/g,' ')
+        .replace(/\n[ \t]*/g,'\n').replace(/\n{3,}/g,'\n\n')
+        .trim().slice(0,limite);
+    }
+    function contenidoTitulado(doc,expresion) {
+      const candidatos=[];
+      const partes=[...doc.querySelectorAll('dialog,[role="dialog"],[id],[class],section,article')];
+      for(const elemento of partes){
+        const identidad=((elemento.id||'')+' '+(typeof elemento.className==='string'?elemento.className:'')+' '+(elemento.getAttribute('aria-label')||'')).slice(0,220);
+        // Evitar elegir un botón o contenedor genérico demasiado grande.
+        if(!expresion.test(identidad))continue;
+        const contenido=textoSeccion(elemento);
+        if(contenido.length>90 && contenido.length<=6200)candidatos.push({texto:contenido,prioridad:3});
+      }
+      for(const titulo of doc.querySelectorAll('h1,h2,h3,h4,h5,[role="heading"]')){
+        if(!expresion.test((titulo.textContent||'').slice(0,110)))continue;
+        // Algunos paneles sitúan los párrafos como hermanos del título.
+        // Examinar ancestros acotados evita leer solo el primer párrafo.
+        let contenedor=titulo.parentElement;
+        for(let nivel=0;contenedor && nivel<5;nivel++,contenedor=contenedor.parentElement){
+          if(contenedor===doc.body || contenedor===doc.documentElement)break;
+          const contenido=textoSeccion(contenedor);
+          if(contenido.length>90 && contenido.length<=6200)
+            candidatos.push({texto:contenido,prioridad:2});
+          if(contenedor.matches('dialog,[role="dialog"],section,article'))break;
+        }
+      }
+      candidatos.sort((a,b)=>b.prioridad-a.prioridad||b.texto.length-a.texto.length);
+      return candidatos[0]?.texto||'';
+    }
+    function resumenHTML(codigo,clave='') {
+      const doc=new DOMParser().parseFromString(codigo,'text/html');
+      // «Acerca de» prevalece incluso sobre <meta name="description">.
+      const acerca=contenidoTitulado(doc,/acerca(?:\s+de)?|about/i);
+      // Si una herramienta ofrece varios párrafos verificables, respetarlos.
+      // Cuando su panel dinámico deja solo una frase en el HTML estático,
+      // mostrar el respaldo íntegro del «Acerca de» aportado por el autor.
+      const respaldo=ACERCA_DOCUMENTADOS[clave];
+      if(acerca && (!respaldo || acerca.length>=Math.max(650,Math.min(2000,respaldo.length*.75))))return acerca;
+      if(respaldo)return respaldo;
+      const intencion=contenidoTitulado(doc,/intenci[oó]n|prop[oó]sito|objetivo/i);
+      if(intencion)return intencion;
+      const meta=[...doc.querySelectorAll('meta[name="description"],meta[property="og:description"],meta[name="twitter:description"]')]
+        .map(n=>n.getAttribute('content')?.trim()).find(t=>t&&t.length>22);
+      if(meta)return meta.slice(0,900);
+      const bloque=doc.querySelector('main article,main section,article,main');
+      const texto=bloque?textoSeccion(bloque,1800):'';
+      return texto.length>28?texto:'';
+    }
+    function resumenLSP(codigo) {
+      const lineas=codigo.replace(/^\uFEFF/,'').split(/\r?\n/).slice(0,90);
+      const bloques=[];let iniciado=false,enBloque=false,autolispBloque=false,vacios=0;
+      for(const linea of lineas){
+        const texto=linea.trim();
+        if(!texto){if(iniciado&&bloques.length&&++vacios>2)break;continue;}
+        vacios=0;
+        if(texto.startsWith('/*')){enBloque=true;iniciado=true;}
+        if(texto.startsWith(';|')){autolispBloque=true;iniciado=true;}
+        if(autolispBloque){
+          const limpio=texto.replace(/^;\|/,'').replace(/\|;.*$/,'').trim();
+          if(limpio)bloques.push(limpio);
+          if(texto.includes('|;'))autolispBloque=false;
+        } else if(enBloque){
+          const limpio=texto.replace(/^\/\*+/,'').replace(/\*\/$/,'').replace(/^\*\s?/, '').trim();
+          if(limpio)bloques.push(limpio);
+          if(texto.includes('*/'))enBloque=false;
+        } else if(/^;|^\/\//.test(texto)) {
+          iniciado=true;const limpio=texto.replace(/^(?:;+|\/\/)\s*/,'').replace(/^[=*_ -]+|[=*_ -]+$/g,'').trim();
+          if(limpio)bloques.push(limpio);
+        } else break;
+        if(bloques.join(' ').length>700)break;
+      }
+      return bloques.join('\n').slice(0,750);
+    }
+    async function buscarDescripcion(item) {
+      if (item.carpetaFiltro) return textoAlternativo(item);
+      const key=item.ruta;
+      if(DESCRIPCIONES_CACHE.has(key))return DESCRIPCIONES_CACHE.get(key);
+      // En file:// la lectura por fetch puede estar restringida. Uso inmediato del respaldo.
+      const ext=extensionDe(key);
+      const esLisp=ext==='.lsp'||ext==='.lis'||ext==='.lib';
+      if(!item.pagina&&!esLisp)return textoAlternativo(item);
+      let texto='';
+      if(location.protocol!=='file:') {
+        try {
+          const rutaReal=item.indice?{...item,indice:false}:item;
+          const cabecera=await leerInicioTexto(urlEntrada(rutaReal),item.pagina?393216:24576);
+          texto=item.pagina?resumenHTML(cabecera,claveHerramienta(item)):resumenLSP(cabecera);
+        }catch(_){/* Respaldo documental sin interrumpir la navegación. */}
+      }
+      const resultado=texto||textoAlternativo(item);
+      DESCRIPCIONES_CACHE.set(key,resultado);
+      return resultado;
+    }
+    async function seleccionarArchivo(item) {
+      ++revisionVista;
+      const actual=revisionVista;
+      seleccionado=item;
+      entrada.value=item.titulo;
+      mostrarIndicacion();ocultarLista();
+      vistaDescripcion.textContent=textoAlternativo(item);
+      vistaIr.textContent=item.carpetaFiltro?'Ver ↗':item.pagina?'Ir ↗':'Descargar ↓';
+      vistaIr.setAttribute('aria-label',(item.carpetaFiltro?'Ver carpeta ':item.pagina?'Ir a ':'Descargar ')+item.titulo);
+      vistaPrevia.hidden=false;
+      vistaIr.hidden=false;
+      vistaIr.classList.remove('llamar-atencion');
+      // Repetir únicamente al seleccionar: una comprobación de estilo sobre un control.
+      void vistaIr.offsetWidth;
+      vistaIr.classList.add('llamar-atencion');
+      buscadorContenedor.classList.add('con-vista');
+      vistaPrevia.scrollTop=0;
+      // Prioridad al texto: el resultado se muestra sin esperar la red.
+      const texto=await buscarDescripcion(item);
+      if(actual===revisionVista&&seleccionado===item)vistaDescripcion.textContent=texto;
+    }
+    function irAlSeleccionado() {
+      const item=seleccionado;
+      if(!item)return;
+      if(item.carpetaFiltro){buscarEnCarpeta(item.rutaCarpeta);return;}
+      if(item.pagina) {
+        const url=urlEntrada(item);
+        // Navegación en esta misma pestaña: gesto explícito de confirmación.
+        window.location.assign(url);
+        return;
+      }
+      archivoPendiente=item;
+      nombreDescarga.textContent=item.titulo;
+      modal.hidden=false;
+      botonNo.focus({preventScroll:true});
+    }
+    vistaIr.addEventListener('click',irAlSeleccionado);
+    // La tarjeta no es modal: un toque fuera la cierra sin perder el texto buscado.
+    document.addEventListener('pointerdown', e => {
+      if (vistaPrevia.hidden || !modal.hidden || vistaPrevia.contains(e.target) || vistaIr.contains(e.target)) return;
+      cerrarVista();
+    });
+    window.__pruebaVista = {estado:()=>({seleccionado:seleccionado?.ruta||null,visible:!vistaPrevia.hidden,accionVisible:!vistaIr.hidden,descripcion:vistaDescripcion.textContent}),
+      seleccionarRuta:r=>{const item=catalogo.find(x=>x.ruta===r);if(item)void seleccionarArchivo(item);}};
+    function cerrarModal() {
+      modal.hidden = true;
+      archivoPendiente = null;
+      entrada.focus();
+    }
+    botonNo.addEventListener('click', () => { cerrarModal(); notificar('Descarga cancelada.', 'info'); });
+    botonSi.addEventListener('click', () => {
+      if (!archivoPendiente) return;
+      const item = archivoPendiente;
+      const enlace = document.createElement('a');
+      enlace.href = urlEntrada(item);
+      enlace.download = item.descarga;
+      document.body.appendChild(enlace);
+      enlace.click();
+      enlace.remove();
+      cerrarModal();
+      notificar('Se solicitó la descarga de «' + item.titulo + '».', 'correcto');
+    });
+    modal.addEventListener('click', e => { if (e.target === modal) cerrarModal(); });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !modal.hidden) { e.preventDefault(); cerrarModal(); }
+      else if (e.key === 'Escape' && !vistaPrevia.hidden) { e.preventDefault(); cerrarVista(); entrada.focus({preventScroll:true}); }
+    });
+    entrada.addEventListener('input', () => { cerrarVista(); actualizarResultados(); });
+    entrada.addEventListener('compositionend', () => { cerrarVista(); actualizarResultados(); });
+    entrada.addEventListener('keydown', e => {
+      if (resultados.hidden || !coincidencias.length) {
+        if (e.key === 'Escape') {
+          if (carpetaActiva) quitarAlcance(); else ocultarLista();
+        }
+        return;
+      }
+      if (e.key === 'ArrowDown') { e.preventDefault(); marcarSeleccion((indiceActivo + 1) % coincidencias.length); }
+      if (e.key === 'ArrowUp') { e.preventDefault(); marcarSeleccion((indiceActivo - 1 + coincidencias.length) % coincidencias.length); }
+      if (e.key === 'Escape') { e.preventDefault(); ocultarLista(); }
+    });
+    formulario.addEventListener('submit', e => {
+      e.preventDefault();
+      if (seleccionado && !vistaPrevia.hidden) { irAlSeleccionado(); return; }
+      if (cargando) { notificar('Consultando archivos…', 'info'); return; }
+      if (errorCatalogo) { notificar('No se pudo consultar la lista de archivos.', 'error'); return; }
+      const elegido = coincidencias[indiceActivo >= 0 ? indiceActivo : 0];
+      if (!elegido) { notificar('Sin resultados para abrir.', 'info'); return; }
+      seleccionarArchivo(elegido);
+    });
+    // La configuración llega en paralelo; actualizar el filtro sin bloquear el buscador.
+    let recargaConfiguracion=0;
+    addEventListener('recursos:config-cargada',()=>{
+      clearTimeout(recargaConfiguracion);
+      recargaConfiguracion=setTimeout(()=>{
+        EXTENSIONES_PERMITIDAS=leerExtensionesPermitidas();
+        void cargarCatalogo();
+      },120);
+    });
+    cargarCatalogo();
+  </script>
+<script>
+'use strict';
+/* Imágenes no esenciales: fecha común, versiones ligeras, paneo opcional.
+   La interfaz y el logo vectorial funcionan incluso sin red, imágenes o movimiento. */
+(()=>{
+  const CAPAS=[document.getElementById('fondo-imagen-a'),document.getElementById('fondo-imagen-b')];
+  if(CAPAS.some(c=>!c))return;
+  const FOTOS=CAPAS.map(c=>c.querySelector('.fondo-foto'));
+  const OPACIDAD_FOTOGRAFIA=1; // Foto opaca; fondo sólido solo como respaldo de carga.
+  const RAIZ='./img/';
+  const API='https://api.github.com/repos/arleyzarate/arleyzarate.github.io/contents/img?per_page=100';
+  const EXT=/\.(webp|avif|png|jpe?g)$/i;
+  const MOVIMIENTO=window.matchMedia('(prefers-reduced-motion: reduce)');
+  let grupos=new Map(), capaActiva=-1, rutaActiva='', indiceActivo=0, franjaMostrada=null;
+  let revision=0, revisionListado=0, iniciada=false, resizeTimer=0, paneo=null;
+  let dimensiones={ancho:0,alto:0}, ultimaLista=[], trabajoPendiente=false;
+  let temporizadorAnticipo=0, anticipo=null, revisionAnticipo=0;
+
+  // Identificadores inmutables del archivo: 01, 02, ..., con variantes del mismo número.
+  function analizarRuta(valor){
+    if(typeof valor!=='string')return null;
+    const ruta=valor.replace(/\\/g,'/').replace(/^\.\//,'');
+    const m=/^img\/([^/]+)$/i.exec(ruta);
+    if(!m)return null;
+    const nombre=m[1];
+    if(!EXT.test(nombre)||!/^[a-z0-9_. -]+$/i.test(nombre)||nombre.includes('..'))return null;
+    const num=/^(0*[1-9]\d*)(?=[_. -]|\.)/.exec(nombre);
+    if(!num)return null;
+    const grupo=Number(num[1]);
+    if(!Number.isSafeInteger(grupo)||grupo>999999)return null;
+    const sinExt=nombre.replace(EXT,'');
+    const medidas=/(?:^|[_ .-])(\d{2,5})[xX](\d{2,5})$/i.exec(sinExt);
+    const sufijo=/(?:^|[_ .-])(\d{2,5})w?$/i.exec(sinExt);
+    const ancho=medidas?Number(medidas[1]):sufijo?Number(sufijo[1]):0;
+    const alto=medidas?Number(medidas[2]):0;
+    if(ancho && ancho<100 || alto && alto<100)return null;
+    return {grupo,nombre,ancho,alto,ruta:RAIZ+encodeURIComponent(nombre)};
+  }
+  function integrarRutas(datos,destino){
+    for(const dato of Array.isArray(datos)?datos:[]){
+      const valor=typeof dato==='string'?dato:(dato?.path||dato?.name||'');
+      const ruta=valor.includes('/')?valor:'img/'+valor;
+      const f=analizarRuta(ruta);
+      if(!f)continue;
+      if(!destino.has(f.grupo))destino.set(f.grupo,[]);
+      if(!destino.get(f.grupo).some(x=>x.nombre===f.nombre))destino.get(f.grupo).push(f);
+    }
+  }
+  async function solicitarJSON(url,opciones={},maxMs=4500){
+    const ctrl=typeof AbortController==='function'?new AbortController():null;
+    let limite;
+    try {
+      // Promise.race limita también los navegadores sin AbortController.
+      const trabajo=fetch(url,{...opciones,...(ctrl?{signal:ctrl.signal}:{})})
+        .then(r=>r.ok?r.json():null);
+      return await Promise.race([
+        trabajo,
+        new Promise(resolve=>{limite=setTimeout(()=>{ctrl?.abort();resolve(null);},maxMs);})
+      ]);
+    }catch(_){return null;}
+    finally{clearTimeout(limite);}
+  }
+  async function obtenerListado(){
+    const resultado=new Map();
+    integrarRutas(window.RECURSOS_IMAGENES,resultado);
+    integrarRutas(window.RECURSOS_ARCHIVOS,resultado);
+    if(location.protocol==='file:')return resultado;
+    const datos=await solicitarJSON(API,{headers:{Accept:'application/vnd.github+json'}},4300);
+    integrarRutas(Array.isArray(datos)?datos.filter(x=>x.type==='file'):[],resultado);
+    // El manifiesto es opcional y está sujeto al mismo límite de espera.
+    if(!resultado.size){
+      const respaldo=await solicitarJSON(RAIZ+'imagenes.json',{cache:'no-store'},1800);
+      integrarRutas(Array.isArray(respaldo)?respaldo:respaldo?.imagenes,resultado);
+    }
+    return resultado;
+  }
+  function consecutivos(){
+    const ids=[];
+    for(let n=1;n<=grupos.size&&grupos.has(n);n++)ids.push(n);
+    return ids;
+  }
+  function franjaActual(){
+    return window.RECURSOS_TRANSICION?.franja() ?? null;
+  }
+  function modulo(valor,n){return ((valor%n)+n)%n;}
+  // Selección inicial independiente según el minuto verificado en internet.
+  // Cada grupo y fotografía avanza un paso después de 30 minutos de visita.
+  function seleccionParaFranja(t,n){
+    const estado=window.RECURSOS_TRANSICION;
+    if(!estado?.iniciado||!Number.isSafeInteger(t)||!Number.isSafeInteger(n)||n<1)return null;
+    const totalPaletas=Math.max(1,Number(window.__pruebaPaletas?.total)||1);
+    const paleta=modulo(Math.floor(estado.minuto*totalPaletas/60)+t,totalPaletas);
+    const imagen=1+modulo(Math.floor(estado.minuto*n/60)+t,n);
+    return {imagen,paleta,franja:t};
+  }
+  function ordenarPorResolucion(lista){
+    const ahorro=!!navigator.connection?.saveData;
+    const dpr=Math.min(window.devicePixelRatio||1,ahorro?1:window.innerWidth<600?1.5:1.75);
+    const objetivo=Math.round(window.innerWidth*dpr);
+    const puntaje=n=>!n?1e8:n>=objetivo?n-objetivo:1e6-n;
+    return [...lista].sort((a,b)=>puntaje(a.ancho)-puntaje(b.ancho));
+  }
+  function precargar(ruta){
+    return new Promise(resolve=>{
+      const img=new Image();let terminado=false;
+      const cerrar=ok=>{
+        if(terminado)return;
+        terminado=true;clearTimeout(limite);img.onload=null;img.onerror=null;
+        resolve(ok?{ancho:img.naturalWidth,alto:img.naturalHeight}:null);
+      };
+      const limite=setTimeout(()=>cerrar(false),5700);
+      img.onload=()=>{
+        if(!img.naturalWidth||!img.naturalHeight){cerrar(false);return;}
+        if(typeof img.decode==='function')img.decode().then(()=>cerrar(true),()=>cerrar(false));
+        else cerrar(true);
+      };
+      img.onerror=()=>cerrar(false);
+      img.src=ruta;
+    });
+  }
+  // La escala cover garantiza que no queden franjas, sea foto vertical u horizontal.
+  function calcularRecorte(iw,ih,vw,vh){
+    if(!iw||!ih||!vw||!vh)return null;
+    const escala=Math.max(vw/iw,vh/ih);
+    const ancho=Math.ceil(iw*escala)+1,alto=Math.ceil(ih*escala)+1;
+    const sobraX=Math.max(0,ancho-vw),sobraY=Math.max(0,alto-vh);
+    const eje=sobraX>sobraY?'x':sobraY>0?'y':null;
+    return {ancho,alto,sobraX,sobraY,eje,centroX:(vw-ancho)/2,centroY:(vh-alto)/2};
+  }
+  function detenerPaneo(){
+    if(paneo){try{paneo.cancel();}catch(_){}paneo=null;}
+    FOTOS.forEach(f=>f.style.willChange='auto');
+  }
+  function configurarFoto(capa,w,h){
+    const imagen=FOTOS[capa],vw=window.innerWidth,vh=window.innerHeight;
+    const g=calcularRecorte(w,h,vw,vh);
+    if(!g)return null;
+    imagen.style.width=g.ancho+'px';imagen.style.height=g.alto+'px';
+    imagen.style.transform=`translate3d(${g.centroX}px,${g.centroY}px,0)`;
+    return g;
+  }
+  function iniciarPaneo(capa,g){
+    detenerPaneo();
+    if(!g||!g.eje||MOVIMIENTO.matches||document.hidden||!FOTOS[capa].animate)return;
+    const sobrante=g.eje==='x'?g.sobraX:g.sobraY;
+    if(sobrante<16)return;
+    const foto=FOTOS[capa];
+    const mover=desplazamiento=>g.eje==='x'
+      ?`translate3d(${g.centroX+desplazamiento}px,${g.centroY}px,0)`
+      :`translate3d(${g.centroX}px,${g.centroY+desplazamiento}px,0)`;
+    // Cinco segundos iniciales; ir al primer extremo, volver al centro,
+    // visitar el extremo contrario y terminar quieta en el centro.
+    const duracionMovimiento=Math.min(22000,Math.max(10000,sobrante/30*1000));
+    const tiempos=[0,5000,5000+duracionMovimiento,9000+duracionMovimiento,
+      9000+2*duracionMovimiento,13000+2*duracionMovimiento,
+      13000+3*duracionMovimiento,17000+3*duracionMovimiento,
+      17000+4*duracionMovimiento];
+    const total=tiempos[tiempos.length-1];
+    const posiciones=[0,0,sobrante/2,sobrante/2,0,0,-sobrante/2,-sobrante/2,0];
+    // Keyframes inmutables, delegados al compositor; no hay setInterval por píxel.
+    const fotogramas=tiempos.map((ms,i)=>({
+      transform:mover(posiciones[i]),offset:ms/total,easing:i%2===1?'ease-in-out':'linear'
+    }));
+    try{
+      foto.style.willChange='transform';
+      paneo=foto.animate(fotogramas,{duration:total,fill:'forwards',iterations:1});
+      paneo.onfinish=()=>{
+        if(paneo){paneo=null;foto.style.willChange='auto';}
+        foto.style.transform=mover(0);
+      };
+    }catch(_){foto.style.willChange='auto';foto.style.transform=mover(0);}
+  }
+  function ocultarFondos(){
+    ++revision;detenerPaneo();
+    CAPAS.forEach((c,i)=>{
+      c.style.opacity='0';c.style.visibility='hidden';
+      FOTOS[i].style.backgroundImage='none';
+    });
+    capaActiva=-1;rutaActiva='';indiceActivo=0;dimensiones={ancho:0,alto:0};
+  }
+  async function mostrarNumero(numero,franja){
+    const id=++revision;
+    const variantes=ordenarPorResolucion(grupos.get(numero)||[]);
+    for(const variante of variantes){
+      if(revision!==id || franjaActual()!==franja)return;
+      if(variante.ruta===rutaActiva&&capaActiva>=0){
+        indiceActivo=numero;franjaMostrada=franja;return;
+      }
+      const yaLista=anticipo?.franja===franja && anticipo?.numero===numero &&
+        anticipo?.ruta===variante.ruta ? anticipo.info : null;
+      const info=yaLista || await precargar(variante.ruta);
+      if(revision!==id || franjaActual()!==franja)return;
+      if(!info)continue;
+      const nueva=capaActiva===0?1:0;
+      detenerPaneo();
+      const foto=FOTOS[nueva],capa=CAPAS[nueva];
+      foto.style.backgroundImage='url("'+variante.ruta+'")';
+      const geometria=configurarFoto(nueva,info.ancho,info.alto);
+      if(!geometria)continue;
+      capa.style.visibility='visible';
+      capa.style.opacity=String(OPACIDAD_FOTOGRAFIA);
+      if(capaActiva>=0){
+        const antigua=CAPAS[capaActiva],fotoAntigua=FOTOS[capaActiva];
+        antigua.style.opacity='0';
+        setTimeout(()=>{
+          if(antigua!==CAPAS[capaActiva]){
+            antigua.style.visibility='hidden';fotoAntigua.style.backgroundImage='none';
+          }
+        },950);
+      }
+      capaActiva=nueva;rutaActiva=variante.ruta;indiceActivo=numero;
+      franjaMostrada=franja;dimensiones=info;
+      iniciarPaneo(nueva,geometria);
+      return;
+    }
+    if(revision===id)ocultarFondos();
+  }
+  async function sincronizar(consultar=false){
+    const id=++revisionListado;
+    const f=franjaActual();
+    if(f===null)return;
+    if(consultar||!iniciada){
+      const lista=anticipo?.franja===f && anticipo.grupos ? anticipo.grupos : await obtenerListado();
+      if(id!==revisionListado)return;
+      grupos=lista;iniciada=true;
+    }
+    if(id!==revisionListado)return;
+    const n=consecutivos().length;
+    if(!n){ocultarFondos();programarAnticipo();return;}
+    const elegida=seleccionParaFranja(f,n);
+    if(!elegida)return;
+    if(franjaMostrada!==f || indiceActivo!==elegida.imagen){
+      // No mostrar indefinidamente la imagen de una franja anterior.
+      // La superficie sólida sigue disponible mientras se descarga la siguiente.
+      ocultarFondos();
+      await mostrarNumero(elegida.imagen,f);
+    }
+    if(anticipo?.franja===f)anticipo=null;
+    programarAnticipo();
+  }
+  // A 45 segundos del siguiente cambio, consultar y decodificar una sola foto.
+  // Esto se ejecuta fuera de la navegación y evita trabajo intenso en el cambio horario.
+  function programarAnticipo(){
+    clearTimeout(temporizadorAnticipo);
+    const estado=window.RECURSOS_TRANSICION;
+    if(!estado?.iniciado)return;
+    temporizadorAnticipo=setTimeout(()=>{void prepararSiguiente();},
+      Math.max(1000,estado.restante()-45000));
+  }
+  async function prepararSiguiente(){
+    if(document.hidden)return;
+    if(document.activeElement?.id==='comando'){
+      temporizadorAnticipo=setTimeout(()=>{void prepararSiguiente();},4500);
+      return;
+    }
+    const id=++revisionAnticipo, f=franjaActual();
+    if(f===null)return;
+    const siguiente=f+1;
+    const lista=await obtenerListado();
+    if(id!==revisionAnticipo||franjaActual()!==f)return;
+    const consecutivosDisponibles=[];
+    for(let n=1;n<=lista.size&&lista.has(n);n++)consecutivosDisponibles.push(n);
+    const seleccion=seleccionParaFranja(siguiente,consecutivosDisponibles.length);
+    if(!seleccion){anticipo={franja:siguiente,grupos:lista};return;}
+    // Priorizar una sola variante. La selección normal conserva sus respaldos.
+    const variante=ordenarPorResolucion(lista.get(seleccion.imagen)||[])[0];
+    const info=variante?await precargar(variante.ruta):null;
+    if(id!==revisionAnticipo||franjaActual()!==f)return;
+    anticipo={franja:siguiente,grupos:lista,numero:seleccion.imagen,
+      ruta:variante?.ruta||'',info};
+  }
+  function programarSincronizacion(){
+    if(trabajoPendiente)return;
+    trabajoPendiente=true;
+    const ejecutar=()=>{trabajoPendiente=false;void sincronizar(!iniciada);};
+    if('requestIdleCallback' in window)requestIdleCallback(ejecutar,{timeout:1800});
+    else setTimeout(ejecutar,450);
+  }
+  addEventListener('recursos:cambio-paleta',()=>{void sincronizar(true);});
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden){paneo?.pause();clearTimeout(temporizadorAnticipo);++revisionAnticipo;}
+    else {
+      if(franjaMostrada!==franjaActual())void sincronizar(true);
+      else {paneo?.play();programarAnticipo();}
+    }
+  });
+  addEventListener('resize',()=>{
+    clearTimeout(resizeTimer);
+    resizeTimer=setTimeout(()=>{
+      if(capaActiva<0)return;
+      // Evitar reiniciar el fondo al abrir el teclado; el buscador tiene su propio ajuste.
+      if(document.activeElement?.id==='comando'&&window.innerWidth===ultimaLista[0])return;
+      const info=dimensiones;
+      if(info.ancho&&info.alto){
+        const g=configurarFoto(capaActiva,info.ancho,info.alto);
+        iniciarPaneo(capaActiva,g);
+      }
+      ultimaLista=[window.innerWidth,window.innerHeight];
+    },350);
+  },{passive:true});
+  MOVIMIENTO.addEventListener?.('change',()=>{
+    if(MOVIMIENTO.matches)detenerPaneo();
+    else if(capaActiva>=0)iniciarPaneo(capaActiva,configurarFoto(capaActiva,dimensiones.ancho,dimensiones.alto));
+  });
+  ultimaLista=[window.innerWidth,window.innerHeight];
+  window.__pruebaImagenes={
+    estado:()=>({grupo:indiceActivo,franja:franjaMostrada,cantidad:grupos.size,ruta:rutaActiva,
+      opacidad:OPACIDAD_FOTOGRAFIA,paneo:!!paneo,dimensiones}),
+    analizarRuta,ordenarPorResolucion,consecutivos,seleccionParaFranja,calcularRecorte,
+    simular:async rutas=>{
+      const mapa=new Map();integrarRutas(rutas,mapa);grupos=mapa;iniciada=true;
+      const f=franjaActual();franjaMostrada=null;
+      if(consecutivos().length){
+        const n=seleccionParaFranja(f,consecutivos().length);
+        ocultarFondos();await mostrarNumero(n.imagen,f);
+      }else ocultarFondos();
+    }
+  };
+  // Primer renderizado: el navegador dispone antes de fondo sólido, firma SVG y buscador.
+  requestAnimationFrame(programarSincronizacion);
+})();
+</script>
+<script>
+  /* Entrada técnica: la firma fija solo se revela al acabar la trayectoria.
+     La interfaz principal y el buscador nunca dependen de este efecto. */
+  (() => {
+    const escena=document.getElementById('plano-entrada');
+    const lamina=document.getElementById('plano-superficie');
+    const final=document.getElementById('firma');
+    const reducido=window.matchMedia('(prefers-reduced-motion: reduce)');
+    if(!escena || !lamina || !final || reducido.matches || document.visibilityState==='hidden') return;
+    let terminado=false;
+    const limpiar=()=>{
+      if(terminado)return;
+      terminado=true;
+      document.documentElement.classList.remove('intro-ocultar-firma');
+      escena.classList.remove('en-marcha');
+      escena.hidden=true;
+    };
+    const salidaSegura=setTimeout(limpiar,3000);
+    document.documentElement.classList.add('intro-ocultar-firma');
+    escena.hidden=false;
+    escena.classList.add('en-marcha');
+    const volar=()=>{
+      if(terminado)return;
+      if(reducido.matches || document.visibilityState==='hidden') {clearTimeout(salidaSegura);limpiar();return;}
+      const a=lamina.getBoundingClientRect();
+      const b=final.getBoundingClientRect();
+      const marcador=lamina.querySelector('.plano-marca');
+      const c=marcador.getBoundingClientRect();
+      const sx=b.width/Math.max(1,c.width);
+      const dx=b.left+b.width/2-(a.left+a.width/2);
+      const dy=b.top+b.height/2-(a.top+a.height/2);
+      if(typeof lamina.animate==='function'){
+        const vuelo=lamina.animate([
+          {transform:'translate(0,0) scale(1)',opacity:1,offset:0},
+          {transform:`translate(${Math.round(dx*.25)}px,${Math.round(dy*.25)}px) scale(.86)`,opacity:1,offset:.25},
+          {transform:`translate(${Math.round(dx)}px,${Math.round(dy)}px) scale(${sx.toFixed(4)})`,opacity:1,offset:1}
+        ],{duration:740,easing:'cubic-bezier(.24,.7,.24,1)',fill:'forwards'});
+        vuelo.finished.then(()=>{clearTimeout(salidaSegura);limpiar();},()=>{clearTimeout(salidaSegura);limpiar();});
+      }else {clearTimeout(salidaSegura);limpiar();}
+    };
+    const espera=setTimeout(volar,1510);
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){clearTimeout(espera);clearTimeout(salidaSegura);limpiar();}},{once:true});
+    reducido.addEventListener?.('change',e=>{if(e.matches){clearTimeout(espera);clearTimeout(salidaSegura);limpiar();}},{once:true});
+  })();
+</script>
+</body>
+</html>
